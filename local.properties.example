@@ -1,0 +1,7 @@
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the Android SDK. For example:
+# On Windows: C:\\Users\\USERNAME\\AppData\\Local\\Android\\Sdk
+# On Mac/Linux: /Users/USERNAME/Library/Android/sdk
+sdk.dir=/path/to/Android/Sdk
