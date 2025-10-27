@@ -23,7 +23,7 @@ data class ImageGalleryState(
 
     val currentFilename: String? = currentImage?.displayName
 
-    val mimeType: String? = currentImage?.mimeType
+    val mimeType: String? = currentImage?.mimeType?.takeIf { it.isNullOrBlank().not() }
 
     companion object {
         const val EMPTY_INDEX = -1

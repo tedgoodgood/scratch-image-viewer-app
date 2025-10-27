@@ -178,13 +178,12 @@ class ImagePickerViewModel(
                         ?.takeIf { it.isNotBlank() }
                         ?: contentResolver.getType(uri)
                         ?: inferMimeType(displayName)
-                        ?: ""
                     return ImageMetadata(uri, displayName, mimeType)
                 }
                 null
             } ?: run {
                 val fallbackName = uri.lastPathSegment ?: uri.toString()
-                val fallbackMime = contentResolver.getType(uri) ?: inferMimeType(fallbackName) ?: ""
+                val fallbackMime = contentResolver.getType(uri) ?: inferMimeType(fallbackName)
                 ImageMetadata(uri, fallbackName, fallbackMime)
             }
         } catch (_: SecurityException) {
@@ -194,8 +193,11 @@ class ImagePickerViewModel(
         }
     }
 
-    private fun isSupportedImage(mimeType: String): Boolean {
-        return mimeType.lowercase(Locale.getDefault()).startsWith("image/")
+    private fun isSupportedImage(mimeType: String?): Boolean {
+        return mimeType
+            ?.lowercase(Locale.getDefault())
+            ?.startsWith("image/")
+            ?: false
     }
 
     private fun inferMimeType(displayName: String?): String? {

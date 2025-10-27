@@ -5,5 +5,5 @@ import android.net.Uri
 data class ImageMetadata(
     val uri: Uri,
     val displayName: String,
-    val mimeType: String
+    val mimeType: String?
 )
