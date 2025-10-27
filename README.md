@@ -1,30 +1,68 @@
-# ComposeApp
+# Fui图片查看器 (ComposeApp)
 
-ComposeApp is a modern Android starter project built entirely with **Kotlin**, **Jetpack Compose**, and **Material Design 3**. It is configured with Kotlin DSL Gradle scripts, sensible defaults, and the essential libraries you need to ship a polished Compose application quickly.
+**Fui图片查看器** is a modern Android image viewer application built entirely with **Kotlin**, **Jetpack Compose**, and **Material Design 3**. It features an innovative scratch overlay system for privacy protection, allowing users to reveal hidden images by brushing away a customizable overlay.
+
+**元亨利贞,有利于我** - Offline protection, auspicious and beneficial.
 
 ## Features
 
-- Jetpack Compose UI powered by the latest Compose BOM
-- Material 3 theming with dynamic color support
-- Kotlin-first Gradle configuration (Kotlin DSL)
-- Code shrinking and resource optimization enabled for release builds
-- Coil integration for image loading
-- Accompanist System UI Controller for status/navigation bar styling
-- Release signing configured via `keystore.properties`
-- Gradle wrapper pinned to Gradle **8.7** and AGP **8.5.2**
+### Core Viewer Capabilities
+- **Image Gallery**: Browse through multiple images with intuitive navigation
+- **Previous/Next Navigation**: Button controls and keyboard arrow keys (← →)
+- **Swipe Gestures**: Horizontal swipe to navigate between images
+- **Fullscreen Mode**: Toggle to immersive fullscreen viewing (hides status & navigation bars)
+- **Orientation Support**: Responsive layout adapts to portrait and landscape orientations
+
+### Scratch Overlay System (Privacy Protection)
+- **Customizable Overlay**: Apply a dark overlay to hide image content
+- **Brush Tool**: Draw/scratch to reveal the underlying image
+  - Adjustable brush size (8-160 dp)
+  - Color picker with 12 preset colors
+  - Smooth stroke rendering with rounded caps
+  - Real-time brush preview
+- **"全看" Reset Button**: Instantly clear all scratch marks to hide the image again
+- **Overlay Image**: Load an additional image as overlay for enhanced privacy
+
+### Settings Panel
+- **Brush Size Slider**: Adjust stroke width with live display (8-160 dp)
+- **Color Picker**: 12 discrete color swatches with visual selection indicator
+- **Overlay Tools**: 
+  - Select overlay image from device storage
+  - Clear overlay button
+  - Display selected overlay file name
+- **Brush Preview**: Visual representation of current brush size and color
+- **Responsive Layout**: 
+  - Bottom panel in portrait mode
+  - Side panel in landscape mode
+
+### UI/UX
+- **Top Control Bar**:
+  - Dropdown menu for quick image selection
+  - Import images button
+  - Previous/Next buttons with disabled states
+  - Settings toggle
+  - Reset overlay button ("全看")
+  - Fullscreen toggle
+- **Footer Text**: "Fui图片查看器 - 离线保护,元亨利贞,有利于我"
+- **Accessibility**: Content descriptions and semantic labels for all controls
+- **State Persistence**: ViewModel ensures state survives configuration changes (rotations)
+- **Edge-to-Edge Display**: Modern immersive UI with system bar integration
 
 ## Tech Stack
 
-| Tool / Library | Version |
-| -------------- | ------- |
-| Kotlin | 2.0.0 |
-| Android Gradle Plugin | 8.5.2 |
-| Compose BOM | 2024.09.01 |
-| Material 3 | via Compose BOM |
-| Activity Compose | 1.9.2 |
-| Lifecycle Runtime Compose | 2.8.4 |
-| Coil Compose | 2.7.0 |
-| Accompanist System UI Controller | 0.36.0 |
+| Tool / Library | Version | Purpose |
+| -------------- | ------- | ------- |
+| Kotlin | 2.0.0 | Primary language |
+| Android Gradle Plugin | 8.5.2 | Build system |
+| Compose BOM | 2024.09.01 | UI framework |
+| Material 3 | via Compose BOM | Design system |
+| Activity Compose | 1.9.2 | Activity integration |
+| Lifecycle ViewModel Compose | 2.8.4 | State management |
+| Lifecycle Runtime Compose | 2.8.4 | Lifecycle awareness |
+| Coil Compose | 2.7.0 | Image loading |
+| Accompanist System UI Controller | 0.36.0 | System bars control |
+| Material Icons Extended | via Compose BOM | Icon library |
+| Kotlinx Coroutines Android | 1.8.1 | Async operations |
 
 **Platform Targets**
 - **minSdk**: 24 (Android 7.0)
@@ -50,20 +88,23 @@ ComposeApp is a modern Android starter project built entirely with **Kotlin**, *
 ├── app/
 │   ├── src/main/
 │   │   ├── java/com/example/composeapp/
-│   │   │   ├── ComposeApp.kt            # Application class
-│   │   │   ├── MainActivity.kt          # Main activity hosting Compose UI
-│   │   │   └── ui/theme/                # Material 3 theme setup
-│   │   ├── res/                         # Resources (icons, strings, themes)
+│   │   │   ├── ComposeApp.kt              # Application class
+│   │   │   ├── MainActivity.kt            # Main activity hosting ImageViewerScreen
+│   │   │   ├── ui/theme/                  # Material 3 theme setup
+│   │   │   └── viewer/                    # Image viewer module
+│   │   │       ├── ImageViewerScreen.kt   # Main viewer UI (controls, layout, gestures)
+│   │   │       └── ImageViewerViewModel.kt # State management (images, brush, overlay)
+│   │   ├── res/                           # Resources (icons, strings, themes)
 │   │   └── AndroidManifest.xml
 │   ├── build.gradle.kts
 │   └── proguard-rules.pro
-├── gradle/                              # Gradle wrapper files
+├── gradle/                                # Gradle wrapper files
 ├── scripts/
-│   └── generate_keystore.sh             # Release keystore helper script
-├── build.gradle.kts                     # Root Gradle config
-├── settings.gradle.kts                  # Gradle settings
-├── gradle.properties                    # Global Gradle properties
-├── keystore.properties.example          # Signing config template
+│   └── generate_keystore.sh               # Release keystore helper script
+├── build.gradle.kts                       # Root Gradle config
+├── settings.gradle.kts                    # Gradle settings
+├── gradle.properties                      # Global Gradle properties
+├── keystore.properties.example            # Signing config template
 └── README.md
 ```
 
@@ -97,6 +138,56 @@ Install on a connected device:
 ```bash
 ./gradlew installDebug
 ```
+
+## Usage Instructions
+
+### Basic Navigation
+1. **Launch the app**: The viewer opens with 3 sample images
+2. **Navigate images**:
+   - Tap **Previous (←)** or **Next (→)** buttons
+   - Use **keyboard arrow keys** (on devices with keyboards)
+   - **Swipe left/right** on the image
+   - Select from the **dropdown menu** in the top bar
+
+### Importing Your Own Images
+1. Tap **"选择图片"** (Select Images) in the top bar
+2. Choose one or multiple images from your device
+3. Selected images are added to the gallery
+
+### Using the Scratch Overlay
+1. **Draw on the image**: Touch and drag to create scratch strokes
+   - The overlay darkens the image initially
+   - Your strokes reveal the underlying image
+2. **Adjust brush size**: Open settings panel, use the slider
+3. **Change brush color**: Tap a color swatch in the settings panel
+4. **Reset overlay**: Tap **"全看"** (Reset) button to hide the image again
+5. **Clear strokes**: Navigate to another image and back, or use reset
+
+### Settings Panel
+1. **Open settings**: Tap the **Settings** icon (gear) on the right side
+2. **Brush Size**: Adjust slider (8-160 dp), see live preview below
+3. **Brush Color**: Choose from 12 colors (black, gray, blue, green, etc.)
+4. **Overlay Tools**:
+   - **Select Overlay**: Load an image to use as overlay texture
+   - **Clear Overlay**: Remove the loaded overlay image
+
+### Fullscreen Mode
+1. **Enter fullscreen**: Tap the **Fullscreen** icon in the top bar
+   - Status and navigation bars hide
+   - Controls hide for immersive viewing
+2. **Exit fullscreen**: 
+   - Tap the **Close (X)** button in the top-left corner
+   - Or tap the **Fullscreen Exit** icon (if visible)
+
+### Orientation Changes
+- The app automatically adapts to **portrait** and **landscape** orientations
+- In landscape, the settings panel appears on the right side
+- In portrait, the settings panel appears at the bottom
+- All state (current image, brush settings, strokes) persists across rotations
+
+### Keyboard Shortcuts
+- **Left Arrow (←)**: Previous image
+- **Right Arrow (→)**: Next image
 
 ## Build Variants
 
@@ -169,6 +260,36 @@ Release builds enable:
 
 This setup keeps release APKs lean without affecting debug builds.
 
+## Permissions
+
+The app requests the following permissions:
+- **INTERNET**: For loading sample images from Unsplash
+- **READ_EXTERNAL_STORAGE** (API ≤ 32): For importing images from device storage
+- **READ_MEDIA_IMAGES** (API ≥ 33): For importing images on Android 13+
+
+## Architecture
+
+- **MVVM Pattern**: ViewModel manages UI state, Screen composables observe state
+- **State Management**: Kotlin `StateFlow` for reactive UI updates
+- **Immutable State**: `ViewerUiState` data class ensures predictable state changes
+- **Coroutines**: Async operations (image loading, overlay decoding) run on IO dispatcher
+- **Compose Canvas**: Custom drawing for scratch overlay with `BlendMode.Clear` to reveal images
+- **Gesture Detection**: `detectDragGestures` for brush strokes, `detectHorizontalDragGestures` for swipe navigation
+- **System UI Control**: `SystemUiController` for fullscreen mode (hide/show system bars)
+- **Focus Management**: `FocusRequester` for keyboard arrow key handling
+
+## Key Compose Features Demonstrated
+
+- **BoxWithConstraints**: Responsive layout based on available space
+- **AnimatedVisibility**: Smooth show/hide animations for controls and settings
+- **LaunchedEffect**: Lifecycle-aware side effects (system bars, focus)
+- **Custom Canvas Drawing**: Scratch overlay with path rendering
+- **Blend Modes**: `BlendMode.Clear` for erasing overlay
+- **Activity Result API**: File picker integration for importing images
+- **State Hoisting**: ViewModel provides single source of truth
+- **Material 3 Components**: TopAppBar, Surface, Card, Slider, Button, Icon, etc.
+- **Edge-to-Edge**: Modern immersive UI with `enableEdgeToEdge()`
+
 ## Useful Gradle Tasks
 
 ```bash
@@ -194,10 +315,35 @@ This setup keeps release APKs lean without affecting debug builds.
 
 **Images not loading**
 - Coil requires Internet access; ensure emulator/device has connectivity
+- Check `AndroidManifest.xml` for `INTERNET` permission
+
+**Scratch overlay not working**
+- Ensure you're using Android API 24+ (minSdk requirement)
+- Check if strokes are too small (increase brush size in settings)
+
+**Fullscreen not working**
+- Verify `accompanist-systemuicontroller` is included in dependencies
+- Check if device supports immersive mode (some emulators have limitations)
+
+## Future Enhancements
+
+- Undo/Redo for scratch strokes
+- Save scratched images to gallery
+- Custom overlay opacity control
+- HSV color picker for more color choices
+- Multiple overlay layers
+- Export/share functionality
+- Gesture zoom/pan on images
+- Dark/Light theme toggle
+- Localization (English, Chinese)
+- Image metadata display (EXIF)
 
 ## License / Contributing
 
 Add your preferred license and contribution guidelines here.
 
 ---
-Happy building with ComposeApp! 🎉
+
+**Fui图片查看器** - 离线保护,元亨利贞,有利于我
+
+Built with ❤️ using Kotlin & Jetpack Compose. Happy viewing! 🎉
