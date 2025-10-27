@@ -195,6 +195,72 @@ This setup keeps release APKs lean without affecting debug builds.
 **Images not loading**
 - Coil requires Internet access; ensure emulator/device has connectivity
 
+## Downloading Pre-built APKs
+
+### From GitHub Actions
+
+This repository includes GitHub Actions that automatically build debug APKs on every push and pull request.
+
+**To download:**
+1. Go to the [Actions tab](../../actions) of this repository
+2. Click on the most recent workflow run (typically named "Build Android APK")
+3. Scroll down to the "Artifacts" section
+4. Download `composeapp-debug-apk`
+5. Extract the ZIP and install the APK on your device
+
+**Note:** Debug APKs are signed with the debug keystore and are suitable for testing but not for production release.
+
+### From GitHub Releases
+
+For push events to the main/master branch, automated debug builds are also published as pre-releases:
+
+1. Navigate to the [Releases page](../../releases)
+2. Look for pre-release builds tagged as `build-<number>`
+3. Download the attached APK file (e.g., `composeapp-debug-<number>.apk`)
+4. Install on your Android device
+
+### Installing APKs on Android Devices
+
+To install downloaded APKs:
+1. **Enable "Install from Unknown Sources"** in your device settings (Android 8+ has per-app settings)
+2. Transfer the APK to your device (USB, email, cloud storage, etc.)
+3. Open the APK file using a file manager
+4. Follow the on-screen prompts to install
+
+**Security Note:** Always verify the source of APK files before installation. Only install APKs from trusted sources.
+
+### Setting Up Release Signing for CI/CD
+
+The current workflow builds debug-signed APKs. To build production-ready release APKs in CI/CD:
+
+1. **Generate a release keystore** (follow the "Release Signing Configuration" section above)
+
+2. **Add the keystore as a GitHub Secret:**
+   - Encode your keystore to base64: `base64 -i release.keystore.jks > keystore.txt`
+   - Go to repository Settings → Secrets and variables → Actions
+   - Add the following repository secrets:
+     - `KEYSTORE_FILE`: Contents of `keystore.txt` (base64-encoded keystore)
+     - `KEYSTORE_PASSWORD`: Your keystore password
+     - `KEY_ALIAS`: Your key alias (e.g., "composeapp")
+     - `KEY_PASSWORD`: Your key password
+
+3. **Modify the workflow** to decode the keystore and configure signing:
+   ```yaml
+   - name: Decode keystore
+     run: |
+       echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > release.keystore.jks
+
+   - name: Build release APK
+     run: ./gradlew assembleRelease
+     env:
+       KEYSTORE_FILE: release.keystore.jks
+       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+   ```
+
+4. **Update the signing config** in `app/build.gradle.kts` to read from environment variables when available
+
 ## License / Contributing
 
 Add your preferred license and contribution guidelines here.
