@@ -18,6 +18,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.composeapp.scratch.ScratchOverlayViewer
 import com.example.composeapp.ui.theme.ComposeAppTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -67,51 +72,31 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 64.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 16.dp)
+            .padding(top = 16.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        ScratchOverlayViewer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data("https://images.unsplash.com/photo-1517816428104-76709c0e7ecf?auto=format&fit=crop&w=600&q=80")
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Compose app hero image",
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(220.dp)
-                    .clip(RoundedCornerShape(32.dp)),
-                contentScale = ContentScale.Crop
-            )
-
             Text(
-                text = "ComposeApp",
-                style = MaterialTheme.typography.headlineLarge,
+                text = "Scratch Overlay Demo",
+                style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
-
             Text(
-                text = "Kickstart your Jetpack Compose project with modern tooling and a delightful UI out of the box.",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(onClick = { /* TODO: Navigate to next screen */ }) {
-                Text(text = "Get Started")
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Built with Kotlin & Jetpack Compose",
-                style = MaterialTheme.typography.labelMedium,
+                text = "自定义刮刮卡背景、覆盖层和画笔大小，还可以随时重置。",
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
         }
