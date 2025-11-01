@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -60,7 +61,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -70,7 +70,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
-import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.GifDecoder
@@ -159,7 +158,10 @@ fun GalleryScreen(
                             onClick = { viewModel.toggleFullscreen() },
                             enabled = state.hasImages
                         ) {
-                            Icon(Icons.Default.Fullscreen, "Fullscreen")
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription = "Fullscreen"
+                            )
                         }
                     }
                 )
@@ -356,7 +358,7 @@ private fun ScratchViewerCard(
             .clip(MaterialTheme.shapes.large)
             .background(Color.Black)
     ) {
-        AsyncImage(
+        Image(
             painter = basePainter,
             contentDescription = "Current image",
             modifier = Modifier.fillMaxSize(),
@@ -410,7 +412,6 @@ private fun ScratchCanvas(
                     lastPosition = offset
                 },
                 onDrag = { change, _ ->
-                    change.consume()
                     val end = change.position
                     val start = lastPosition ?: change.previousPosition
                     onScratch(start, end, brushRadiusPx)
@@ -470,7 +471,10 @@ private fun NavigationControls(
             enabled = state.canGoPrevious,
             modifier = Modifier.weight(1f)
         ) {
-            Icon(Icons.Default.ArrowBack, contentDescription = null)
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = null
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Previous")
         }
@@ -482,7 +486,10 @@ private fun NavigationControls(
         ) {
             Text("Next")
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, contentDescription = null)
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = null
+            )
         }
     }
 }
@@ -530,6 +537,9 @@ private fun BrushPreview(
     brushSize: Float,
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -542,11 +552,11 @@ private fun BrushPreview(
             val normalized = (brushSize / 100f).coerceIn(0f, 1f)
             val radius = normalized * (size.minDimension / 2f)
             drawCircle(
-                color = MaterialTheme.colorScheme.primary,
+                color = primaryColor,
                 radius = max(radius, 8f)
             )
             drawCircle(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                color = borderColor,
                 radius = size.minDimension / 2f,
                 style = Stroke(width = 2f)
             )
@@ -675,7 +685,7 @@ private fun FullscreenViewer(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
+        Image(
             painter = basePainter,
             contentDescription = "Current image",
             modifier = Modifier.fillMaxSize(),
@@ -699,7 +709,7 @@ private fun FullscreenViewer(
                 .padding(16.dp)
         ) {
             Icon(
-                Icons.Default.FullscreenExit,
+                imageVector = Icons.Default.FullscreenExit,
                 contentDescription = "Exit fullscreen",
                 tint = Color.White
             )
