@@ -25,9 +25,8 @@ ComposeApp is a modern Android starter project built entirely with **Kotlin**, *
 | Activity Compose | 1.9.2 |
 | Lifecycle Runtime Compose | 2.8.4 |
 | Lifecycle ViewModel Compose | 2.8.4 |
-| Coil Compose | 2.7.0 |
-| Coil GIF | 2.7.0 |
-| Coil WebP | 2.7.0 |
+| Coil Compose | 2.5.0 |
+| Coil GIF | 2.5.0 |
 | Accompanist System UI Controller | 0.36.0 |
 
 **Platform Targets**

@@ -75,7 +75,6 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
-import coil.decode.WebpDecoder
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.composeapp.domain.GalleryState
@@ -310,7 +309,6 @@ private fun ScratchViewerCard(
                     add(ImageDecoderDecoder.Factory())
                 } else {
                     add(GifDecoder.Factory())
-                    add(WebpDecoder.Factory(context))
                 }
             }
             .build()
@@ -649,7 +647,6 @@ private fun FullscreenViewer(
                     add(ImageDecoderDecoder.Factory())
                 } else {
                     add(GifDecoder.Factory())
-                    add(WebpDecoder.Factory(context))
                 }
             }
             .build()
