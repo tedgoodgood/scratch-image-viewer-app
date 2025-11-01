@@ -10,6 +10,7 @@ ComposeApp is a modern Android starter project built entirely with **Kotlin**, *
 - Code shrinking and resource optimization enabled for release builds
 - Coil integration for image loading
 - Accompanist System UI Controller for status/navigation bar styling
+- Interactive scratch-off overlay viewer with fullscreen mode, brush controls, and image picker
 - Release signing configured via `keystore.properties`
 - Gradle wrapper pinned to Gradle **8.7** and AGP **8.5.2**
 
@@ -23,7 +24,10 @@ ComposeApp is a modern Android starter project built entirely with **Kotlin**, *
 | Material 3 | via Compose BOM |
 | Activity Compose | 1.9.2 |
 | Lifecycle Runtime Compose | 2.8.4 |
+| Lifecycle ViewModel Compose | 2.8.4 |
 | Coil Compose | 2.7.0 |
+| Coil GIF | 2.7.0 |
+| Coil WebP | 2.7.0 |
 | Accompanist System UI Controller | 0.36.0 |
 
 **Platform Targets**
@@ -52,6 +56,9 @@ ComposeApp is a modern Android starter project built entirely with **Kotlin**, *
 │   │   ├── java/com/example/composeapp/
 │   │   │   ├── ComposeApp.kt            # Application class
 │   │   │   ├── MainActivity.kt          # Main activity hosting Compose UI
+│   │   │   ├── domain/                  # Gallery domain models
+│   │   │   ├── ui/GalleryScreen.kt      # Jetpack Compose gallery + controls
+│   │   │   ├── viewmodel/GalleryViewModel.kt
 │   │   │   └── ui/theme/                # Material 3 theme setup
 │   │   ├── res/                         # Resources (icons, strings, themes)
 │   │   └── AndroidManifest.xml
