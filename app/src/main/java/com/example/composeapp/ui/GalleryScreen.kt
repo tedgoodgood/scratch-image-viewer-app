@@ -82,9 +82,6 @@ import com.example.composeapp.viewmodel.GalleryViewModel
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlin.math.max
 import kotlin.math.roundToInt
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Image
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
