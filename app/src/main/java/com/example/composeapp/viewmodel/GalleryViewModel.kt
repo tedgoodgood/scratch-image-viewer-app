@@ -4,11 +4,11 @@ import android.app.Application
 import android.content.ContentResolver
 import android.content.Intent
 import android.database.Cursor
+import android.graphics.PointF
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.annotation.ColorInt
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
@@ -161,7 +161,7 @@ class GalleryViewModel(
         }
     }
 
-    fun setScratchColor(color: Color) {
+    fun setScratchColor(@ColorInt color: Int) {
         updateState(persist = false) {
             it.copy(
                 scratchColor = color,
@@ -172,7 +172,7 @@ class GalleryViewModel(
         }
     }
 
-    fun addScratchSegment(start: Offset, end: Offset?, radiusPx: Float) {
+    fun addScratchSegment(start: PointF, end: PointF?, radiusPx: Float) {
         updateState(persist = false) {
             it.copy(
                 scratchSegments = it.scratchSegments + ScratchSegment(start, end, radiusPx),
@@ -295,11 +295,7 @@ class GalleryViewModel(
         val updated = transform(_state.value)
         _state.value = updated
         if (persist) {
-            val persistableImages = updated.images.filter { it.uri.scheme == ContentResolver.SCHEME_CONTENT }
-            savedStateHandle[KEY_PERSISTED_URIS] = persistableImages.map { it.uri.toString() }
-            val currentUri = updated.currentImage?.uri
-            val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
-            savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
+            persistGalleryState(updated, savedStateHandle)
         }
     }
 
@@ -309,6 +305,17 @@ class GalleryViewModel(
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
+
+        internal fun persistGalleryState(
+            state: GalleryState,
+            savedStateHandle: SavedStateHandle
+        ) {
+            val persistableImages = state.images.filter { it.uri.scheme == ContentResolver.SCHEME_CONTENT }
+            savedStateHandle[KEY_PERSISTED_URIS] = persistableImages.map { it.uri.toString() }
+            val currentUri = state.currentImage?.uri
+            val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
+            savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
+        }
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
