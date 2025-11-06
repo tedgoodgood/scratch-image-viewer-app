@@ -77,8 +77,12 @@ import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.composeapp.domain.GalleryState
-import com.example.composeapp.domain.ScratchSegment
 import com.example.composeapp.viewmodel.GalleryViewModel
+import com.example.composeapp.ui.compose.ComposeScratchSegment
+import com.example.composeapp.ui.compose.addScratchSegment
+import com.example.composeapp.ui.compose.setScratchColor
+import com.example.composeapp.ui.compose.toComposeColor
+import com.example.composeapp.ui.compose.toComposeScratchSegments
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -269,9 +273,9 @@ private fun GalleryContent(
         Divider()
 
         OverlayControls(
-            overlayColor = state.scratchColor,
+            overlayColor = state.scratchColor.toComposeColor(),
             hasCustomOverlay = state.customOverlayUri != null,
-            onColorSelected = viewModel::setScratchColor,
+            onColorSelected = { viewModel.setScratchColor(it) },
             onSelectOverlay = onSelectOverlay,
             onClearOverlay = { viewModel.selectOverlay(null) }
         )
@@ -348,7 +352,11 @@ private fun ScratchViewerCard(
             imageLoader = imageLoader
         )
     } ?: remember(state.scratchColor) {
-        ColorPainter(state.scratchColor)
+        ColorPainter(state.scratchColor.toComposeColor())
+    }
+
+    val composeScratchSegments = remember(state.scratchSegments) {
+        state.toComposeScratchSegments()
     }
 
     Box(
@@ -368,7 +376,7 @@ private fun ScratchViewerCard(
         ScratchCanvas(
             painter = overlayPainter,
             brushRadiusPx = state.brushSize,
-            scratchSegments = state.scratchSegments,
+            scratchSegments = composeScratchSegments,
             onScratch = { start, end, radius ->
                 viewModel.addScratchSegment(start, end, radius)
             },
@@ -398,7 +406,7 @@ private fun ScratchViewerCard(
 private fun ScratchCanvas(
     painter: Painter,
     brushRadiusPx: Float,
-    scratchSegments: List<ScratchSegment>,
+    scratchSegments: List<ComposeScratchSegment>,
     onScratch: (start: Offset, end: Offset?, radius: Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -681,7 +689,11 @@ private fun FullscreenViewer(
             imageLoader = imageLoader
         )
     } ?: remember(state.scratchColor) {
-        ColorPainter(state.scratchColor)
+        ColorPainter(state.scratchColor.toComposeColor())
+    }
+
+    val composeScratchSegments = remember(state.scratchSegments) {
+        state.toComposeScratchSegments()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -695,7 +707,7 @@ private fun FullscreenViewer(
         ScratchCanvas(
             painter = overlayPainter,
             brushRadiusPx = state.brushSize,
-            scratchSegments = state.scratchSegments,
+            scratchSegments = composeScratchSegments,
             onScratch = { start, end, radius ->
                 viewModel.addScratchSegment(start, end, radius)
             },

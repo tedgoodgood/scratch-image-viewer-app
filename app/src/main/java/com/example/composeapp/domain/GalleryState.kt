@@ -1,14 +1,14 @@
 package com.example.composeapp.domain
 
+import android.graphics.PointF
 import android.net.Uri
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.annotation.ColorInt
 
 data class GalleryState(
     val images: List<ImageItem> = emptyList(),
     val currentIndex: Int = -1,
     val brushSize: Float = 40f,
-    val scratchColor: Color = Color(0xFFD4AF37),
+    @ColorInt val scratchColor: Int = DEFAULT_SCRATCH_COLOR,
     val customOverlayUri: Uri? = null,
     val scratchSegments: List<ScratchSegment> = emptyList(),
     val hasScratched: Boolean = false,
@@ -23,7 +23,10 @@ data class GalleryState(
 }
 
 data class ScratchSegment(
-    val start: Offset,
-    val end: Offset?,
+    val start: PointF,
+    val end: PointF?,
     val radiusPx: Float
 )
+
+@ColorInt
+val DEFAULT_SCRATCH_COLOR: Int = 0xFFD4AF37.toInt()
