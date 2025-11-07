@@ -85,6 +85,19 @@ class MainActivity : AppCompatActivity() {
             viewModel.toggleFullscreen()
         }
 
+        // Fullscreen overlay controls
+        binding.fullscreenPreviousButton.setOnClickListener {
+            viewModel.goToPrevious()
+        }
+
+        binding.fullscreenNextButton.setOnClickListener {
+            viewModel.goToNext()
+        }
+
+        binding.fullscreenExitButton.setOnClickListener {
+            viewModel.toggleFullscreen()
+        }
+
         // Brush size control
         binding.brushSizeSeekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
@@ -192,9 +205,15 @@ class MainActivity : AppCompatActivity() {
         if (state.isFullscreen) {
             binding.controlsContainer.visibility = View.GONE
             binding.topControls.visibility = View.GONE
+            binding.fullscreenControlsContainer.visibility = View.VISIBLE
         } else {
             binding.controlsContainer.visibility = View.VISIBLE
             binding.topControls.visibility = View.VISIBLE
+            binding.fullscreenControlsContainer.visibility = View.GONE
         }
+
+        // Update fullscreen navigation buttons state
+        binding.fullscreenPreviousButton.isEnabled = state.canGoPrevious
+        binding.fullscreenNextButton.isEnabled = state.canGoNext
     }
 }
