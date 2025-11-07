@@ -302,7 +302,15 @@
                 android:id="@+id/selectImagesButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
                 android:text="Select Images"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/selectFolderButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Folder"
                 android:textSize="12sp" />
 
         </LinearLayout>
