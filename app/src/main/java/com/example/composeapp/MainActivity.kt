@@ -2,6 +2,7 @@ package com.example.composeapp
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -46,6 +47,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val selectFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data
+            if (uri != null) {
+                viewModel.selectFolder(uri)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -70,6 +82,22 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
             }
             selectImagesLauncher.launch(Intent.createChooser(intent, "Select Images"))
+        }
+
+        // Folder selection
+        binding.selectFolderButton.setOnClickListener {
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                }
+            } else {
+                // Fallback for API 14-20: Use ACTION_PICK for directory selection
+                Intent(Intent.ACTION_PICK).apply {
+                    type = "vnd.android.cursor.dir/primary"
+                }
+            }
+            selectFolderLauncher.launch(Intent.createChooser(intent, "Select Folder"))
         }
 
         // Navigation controls

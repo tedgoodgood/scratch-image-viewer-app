@@ -6,9 +6,13 @@ import android.content.Intent
 import android.database.Cursor
 import android.graphics.PointF
 import android.net.Uri
+import android.os.Build
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.annotation.ColorInt
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
@@ -81,6 +85,81 @@ class GalleryViewModel(
 
             val current = _state.value
             val persistedImages = (current.images + validItems)
+                .filterNot { it.uri == defaultImage.uri }
+                .distinctBy { it.uri }
+                .sortedWith(compareBy(naturalSortComparator) { it.displayName })
+
+            val merged = listOf(defaultImage) + persistedImages
+            val previousPersistedCount = current.images.count { it.uri != defaultImage.uri }
+            val newIndex = when {
+                previousPersistedCount == 0 -> 1
+                current.currentIndex >= merged.size -> merged.lastIndex
+                else -> current.currentIndex
+            }
+
+            prefetchImages(merged)
+
+            updateState {
+                it.copy(
+                    images = merged,
+                    currentIndex = newIndex.coerceIn(0, merged.lastIndex),
+                    isLoading = false,
+                    scratchSegments = emptyList(),
+                    hasScratched = false,
+                    error = null
+                )
+            }
+        }
+    }
+
+    fun selectFolder(folderUri: Uri) {
+        viewModelScope.launch {
+            updateState(persist = false) { it.copy(isLoading = true, error = null) }
+
+            val folderImages = withContext(Dispatchers.IO) {
+                try {
+                    takePersistablePermission(folderUri)
+                    val images = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        enumerateImagesFromDocumentFolder(folderUri)
+                    } else {
+                        enumerateImagesFromLegacyFolder(folderUri)
+                    }
+                    
+                    // Performance warning for large folders
+                    if (images.size > 1000) {
+                        updateState(persist = false) {
+                            it.copy(
+                                isLoading = false,
+                                error = "Found ${images.size} images. Large folders may impact performance. Consider selecting a smaller folder."
+                            )
+                        }
+                    }
+                    
+                    images
+                } catch (e: Exception) {
+                    updateState(persist = false) {
+                        it.copy(
+                            isLoading = false,
+                            error = "Failed to access folder: ${e.message}"
+                        )
+                    }
+                    emptyList()
+                }
+            }
+
+            if (folderImages.isEmpty()) {
+                updateState(persist = false) {
+                    it.copy(
+                        isLoading = false,
+                        error = "No supported images found in the selected folder."
+                    )
+                }
+                return@launch
+            }
+
+            // Merge with existing images using the same logic as selectImages
+            val current = _state.value
+            val persistedImages = (current.images + folderImages)
                 .filterNot { it.uri == defaultImage.uri }
                 .distinctBy { it.uri }
                 .sortedWith(compareBy(naturalSortComparator) { it.displayName })
@@ -274,6 +353,97 @@ class GalleryViewModel(
         return if (index >= 0 && !isNull(index)) getString(index) else null
     }
 
+    private fun enumerateImagesFromDocumentFolder(folderUri: Uri): List<ImageItem> {
+        val resolver = getApplication<Application>().contentResolver
+        val documentFile = DocumentFile.fromTreeUri(getApplication(), folderUri)
+            ?: return emptyList()
+
+        val imageItems = mutableListOf<ImageItem>()
+        val maxDepth = 10 // Prevent infinite recursion
+        val visitedUris = mutableSetOf<String>()
+
+        fun traverseFolder(documentFile: DocumentFile, depth: Int = 0) {
+            if (depth > maxDepth) return
+            if (documentFile.uri.toString() in visitedUris) return
+            visitedUris.add(documentFile.uri.toString())
+
+            documentFile.listFiles().forEach { file ->
+                if (file.isDirectory) {
+                    traverseFolder(file, depth + 1)
+                } else if (file.isFile && isImageMimeType(file.type)) {
+                    extractImageItem(file.uri)?.let { imageItems.add(it) }
+                }
+            }
+        }
+
+        traverseFolder(documentFile)
+        return imageItems
+    }
+
+    private fun enumerateImagesFromLegacyFolder(folderUri: Uri): List<ImageItem> {
+        val resolver = getApplication<Application>().contentResolver
+        val imageItems = mutableListOf<ImageItem>()
+
+        // For API < 21, folder selection is very limited
+        // We'll try to extract path information and use MediaStore
+        try {
+            // Try to get the folder path from the URI
+            val folderPath = folderUri.path ?: return emptyList()
+            
+            val projection = arrayOf(
+                MediaStore.Images.Media._ID,
+                MediaStore.Images.Media.DISPLAY_NAME,
+                MediaStore.Images.Media.MIME_TYPE,
+                MediaStore.Images.Media.DATA
+            )
+
+            // Try to filter by folder path if possible
+            val selectionClause: String
+            val selectionArgs: Array<String>?
+            
+            if (folderPath.contains("/")) {
+                selectionClause = "${MediaStore.Images.Media.MIME_TYPE} LIKE 'image/%' AND ${MediaStore.Images.Media.DATA} LIKE ?"
+                selectionArgs = arrayOf("%$folderPath%")
+            } else {
+                selectionClause = "${MediaStore.Images.Media.MIME_TYPE} LIKE 'image/%'"
+                selectionArgs = null
+            }
+
+            val cursor = resolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selectionClause,
+                selectionArgs,
+                MediaStore.Images.Media.DISPLAY_NAME
+            )
+
+            cursor?.use { c ->
+                val idColumn = c.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                val nameColumn = c.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val mimeColumn = c.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+                val dataColumn = c.getColumnIndex(MediaStore.Images.Media.DATA)
+
+                while (c.moveToNext()) {
+                    val id = c.getLong(idColumn)
+                    val name = c.getString(nameColumn)
+                    val mimeType = c.getString(mimeColumn)
+                    val dataPath = if (dataColumn >= 0) c.getString(dataColumn) else null
+                    
+                    // Additional filtering to ensure we're getting images from the right folder
+                    if (dataPath == null || folderPath.contains("/") || dataPath.contains(folderPath)) {
+                        val uri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id.toString())
+                        imageItems.add(ImageItem(uri, name, mimeType))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // If everything fails, return empty list
+            // The error will be handled by the calling function
+        }
+
+        return imageItems
+    }
+
     private fun updateState(
         persist: Boolean = true,
         transform: (GalleryState) -> GalleryState
@@ -288,6 +458,7 @@ class GalleryViewModel(
     companion object {
         private const val KEY_PERSISTED_URIS = "gallery:persisted_uris"
         private const val KEY_CURRENT_INDEX = "gallery:current_index"
+        private const val KEY_PERSISTED_FOLDERS = "gallery:persisted_folders"
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
@@ -301,6 +472,10 @@ class GalleryViewModel(
             val currentUri = state.currentImage?.uri
             val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
+            
+            // Note: Folder URIs are not persisted here to avoid complexity
+            // Users can re-select folders after app restart
+            savedStateHandle[KEY_PERSISTED_FOLDERS] = emptyList<String>()
         }
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
