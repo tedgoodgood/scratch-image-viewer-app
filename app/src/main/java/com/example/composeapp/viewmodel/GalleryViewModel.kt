@@ -17,9 +17,6 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import coil.Coil
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import com.example.composeapp.domain.GalleryState
 import com.example.composeapp.domain.ImageItem
 import com.example.composeapp.domain.ScratchSegment
@@ -231,19 +228,8 @@ class GalleryViewModel(
     }
 
     private fun prefetchImages(images: List<ImageItem>) {
-        if (images.isEmpty()) return
-        val appContext = getApplication<Application>()
-        val loader = Coil.imageLoader(appContext)
-        images.forEach { item ->
-            val request = ImageRequest.Builder(appContext)
-                .data(item.uri)
-                .memoryCacheKey(item.uri.toString())
-                .diskCacheKey(item.uri.toString())
-                .memoryCachePolicy(CachePolicy.ENABLED)
-                .diskCachePolicy(CachePolicy.ENABLED)
-                .build()
-            loader.enqueue(request)
-        }
+        // No prefetching needed with Glide as it handles caching automatically
+        // This method is kept for compatibility but doesn't need to do anything
     }
 
     private fun restorePersistedState() {
