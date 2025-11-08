@@ -24,6 +24,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: GalleryViewModel by viewModels { GalleryViewModel.Factory }
+    
+    // Track current overlay state to avoid unnecessary updates
+    private var currentOverlayType: com.example.composeapp.domain.OverlayType = com.example.composeapp.domain.OverlayType.COLOR
+    private var currentOverlayUri: android.net.Uri? = null
+    private var currentImageUri: android.net.Uri? = null
+    private var currentScratchColor: Int = 0
 
     private val selectImagesLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -143,15 +149,15 @@ class MainActivity : AppCompatActivity() {
 
         // Overlay color selection
         binding.colorGoldButton.setOnClickListener {
-            viewModel.setScratchColor(0xFFD4AF37.toInt())
+            viewModel.setScratchColor(0x80D4AF37.toInt()) // Semi-transparent gold
         }
 
         binding.colorSilverButton.setOnClickListener {
-            viewModel.setScratchColor(0xFFC0C0C0.toInt())
+            viewModel.setScratchColor(0x80C0C0C0.toInt()) // Semi-transparent silver
         }
 
         binding.colorBronzeButton.setOnClickListener {
-            viewModel.setScratchColor(0xFFCD7F32.toInt())
+            viewModel.setScratchColor(0x80CD7F32.toInt()) // Semi-transparent bronze
         }
 
         binding.customOverlayButton.setOnClickListener {
@@ -226,18 +232,31 @@ class MainActivity : AppCompatActivity() {
         // Update scratch overlay
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
-        when (state.overlayType) {
-            com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE -> {
-                state.customOverlayUri?.let { uri ->
-                    binding.scratchOverlay.setCustomOverlay(uri)
+        // Only update overlay when it actually changes
+        if (state.overlayType != currentOverlayType || 
+            state.customOverlayUri != currentOverlayUri ||
+            state.currentImage?.uri != currentImageUri ||
+            state.scratchColor != currentScratchColor) {
+            
+            when (state.overlayType) {
+                com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE -> {
+                    state.customOverlayUri?.let { uri ->
+                        binding.scratchOverlay.setCustomOverlay(uri)
+                    }
+                }
+                com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
+                    binding.scratchOverlay.setFrostedGlassOverlay(state.currentImage?.uri)
+                }
+                com.example.composeapp.domain.OverlayType.COLOR -> {
+                    binding.scratchOverlay.setScratchColor(state.scratchColor)
                 }
             }
-            com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
-                binding.scratchOverlay.setFrostedGlassOverlay(state.currentImage?.uri)
-            }
-            com.example.composeapp.domain.OverlayType.COLOR -> {
-                binding.scratchOverlay.setScratchColor(state.scratchColor)
-            }
+            
+            // Update tracking variables
+            currentOverlayType = state.overlayType
+            currentOverlayUri = state.customOverlayUri
+            currentImageUri = state.currentImage?.uri
+            currentScratchColor = state.scratchColor
         }
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
