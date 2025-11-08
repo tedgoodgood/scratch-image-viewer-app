@@ -70,9 +70,9 @@ class ScratchOverlayView @JvmOverloads constructor(
     private val blurCache = mutableMapOf<String, Bitmap>()
 
     companion object {
-        private const val DEFAULT_SCRATCH_COLOR = 0xFFD4AF37.toInt()
-        private const val BLUR_RADIUS = 15f
-        private const val MAX_BLUR_RADIUS_API_16 = 10f // Reduced for older devices
+        private const val DEFAULT_SCRATCH_COLOR = 0x80D4AF37.toInt() // Semi-transparent gold (50% opacity)
+        private const val BLUR_RADIUS = 25f // Increased for better frosted glass effect
+        private const val MAX_BLUR_RADIUS_API_16 = 20f // Increased for older devices
     }
 
     fun setScratchColor(color: Int) {
@@ -80,7 +80,17 @@ class ScratchOverlayView @JvmOverloads constructor(
         customOverlayUri = null
         frostedGlassUri = null
         clearBlurCache()
-        clearScratches()
+        
+        // Create new overlay with the scratch color
+        if (width > 0 && height > 0) {
+            overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            overlayCanvas = Canvas(overlayBitmap!!)
+            overlayCanvas?.drawColor(scratchColor)
+            
+            // Redraw any existing scratches
+            redrawScratches()
+        }
+        
         invalidate()
     }
 
@@ -127,17 +137,25 @@ class ScratchOverlayView @JvmOverloads constructor(
             overlayCanvas?.let { canvas ->
                 when {
                     customOverlayUri != null -> {
-                        overlayBitmap = overlayBitmap?.copy(bitmap.config, true)
-                        overlayCanvas = Canvas(overlayBitmap!!)
+                        // Reload the custom image to clear scratches
+                        customOverlayUri?.let { loadCustomOverlay(it) }
                     }
                     frostedGlassUri != null -> {
-                        overlayBitmap = overlayBitmap?.copy(bitmap.config, true)
-                        overlayCanvas = Canvas(overlayBitmap!!)
+                        // Reload the frosted glass to clear scratches
+                        frostedGlassUri?.let { loadFrostedGlassOverlay(it) }
                     }
                     else -> {
+                        // Clear and redraw with scratch color
                         canvas.drawColor(scratchColor)
                     }
                 }
+            }
+        } ?: run {
+            // If no overlay bitmap exists, create one with scratch color
+            if (width > 0 && height > 0) {
+                overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                overlayCanvas = Canvas(overlayBitmap!!)
+                overlayCanvas?.drawColor(scratchColor)
             }
         }
         invalidate()
@@ -168,8 +186,12 @@ class ScratchOverlayView @JvmOverloads constructor(
                         it
                     }
                     
-                    overlayBitmap = scaledBitmap?.copy(scaledBitmap.config, true)
+                    // Create overlay bitmap with the custom image
+                    overlayBitmap = scaledBitmap?.copy(Bitmap.Config.ARGB_8888, true)
                     overlayCanvas = Canvas(overlayBitmap!!)
+                    
+                    // Redraw any existing scratches after loading the new overlay
+                    redrawScratches()
                     invalidate()
                 }
             } catch (e: Exception) {
@@ -189,6 +211,9 @@ class ScratchOverlayView @JvmOverloads constructor(
                 blurCache[cacheKey]?.let { cachedBitmap ->
                     overlayBitmap = cachedBitmap.copy(cachedBitmap.config, true)
                     overlayCanvas = Canvas(overlayBitmap!!)
+                    
+                    // Redraw any existing scratches after loading from cache
+                    redrawScratches()
                     invalidate()
                     return@launch
                 }
@@ -227,11 +252,15 @@ class ScratchOverlayView @JvmOverloads constructor(
                     }
                     
                     blurredBitmap?.let { blurred ->
-                        // Cache the result
+                        // Cache the result (read-only copy)
                         blurCache[cacheKey] = blurred.copy(blurred.config, false)
                         
-                        overlayBitmap = blurred.copy(blurred.config, true)
+                        // Create mutable overlay bitmap for scratching
+                        overlayBitmap = blurred.copy(Bitmap.Config.ARGB_8888, true)
                         overlayCanvas = Canvas(overlayBitmap!!)
+                        
+                        // Redraw any existing scratches after loading the new overlay
+                        redrawScratches()
                         invalidate()
                     }
                 }
@@ -462,6 +491,7 @@ class ScratchOverlayView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
         
         if (w > 0 && h > 0) {
+            // Create new overlay bitmap for the new size
             overlayBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
             
@@ -474,10 +504,9 @@ class ScratchOverlayView @JvmOverloads constructor(
                 }
                 else -> {
                     overlayCanvas?.drawColor(scratchColor)
+                    redrawScratches()
                 }
             }
-            
-            redrawScratches()
         }
     }
 

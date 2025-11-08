@@ -30,4 +30,4 @@ data class ScratchSegment(
 )
 
 @ColorInt
-val DEFAULT_SCRATCH_COLOR: Int = 0xFFD4AF37.toInt()
+val DEFAULT_SCRATCH_COLOR: Int = 0x80D4AF37.toInt() // Semi-transparent gold (50% opacity)
