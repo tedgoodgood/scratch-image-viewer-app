@@ -15,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.example.composeapp.R
 import com.example.composeapp.databinding.ActivityMainBinding
 import com.example.composeapp.viewmodel.GalleryViewModel
 import kotlinx.coroutines.launch
@@ -160,6 +161,10 @@ class MainActivity : AppCompatActivity() {
             selectOverlayLauncher.launch(Intent.createChooser(intent, "Select Overlay Image"))
         }
 
+        binding.frostedGlassButton.setOnClickListener {
+            viewModel.setFrostedGlassOverlay()
+        }
+
         binding.resetButton.setOnClickListener {
             viewModel.resetOverlay()
         }
@@ -214,17 +219,25 @@ class MainActivity : AppCompatActivity() {
 
         // Update fullscreen button icon
         binding.fullscreenButton.setImageResource(
-            if (state.isFullscreen) android.R.drawable.ic_menu_close_clear_cancel 
-            else android.R.drawable.ic_menu_fullscreen
+            if (state.isFullscreen) R.drawable.ic_fullscreen_exit 
+            else R.drawable.ic_fullscreen
         )
 
         // Update scratch overlay
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
-        if (state.customOverlayUri != null) {
-            binding.scratchOverlay.setCustomOverlay(state.customOverlayUri)
-        } else {
-            binding.scratchOverlay.setScratchColor(state.scratchColor)
+        when (state.overlayType) {
+            com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE -> {
+                state.customOverlayUri?.let { uri ->
+                    binding.scratchOverlay.setCustomOverlay(uri)
+                }
+            }
+            com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
+                binding.scratchOverlay.setFrostedGlassOverlay(state.currentImage?.uri)
+            }
+            com.example.composeapp.domain.OverlayType.COLOR -> {
+                binding.scratchOverlay.setScratchColor(state.scratchColor)
+            }
         }
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)

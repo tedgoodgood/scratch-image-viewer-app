@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.composeapp.domain.GalleryState
 import com.example.composeapp.domain.ImageItem
+import com.example.composeapp.domain.OverlayType
 import com.example.composeapp.domain.ScratchSegment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -192,6 +193,18 @@ class GalleryViewModel(
         updateState(persist = false) {
             it.copy(
                 customOverlayUri = uri,
+                overlayType = if (uri != null) OverlayType.CUSTOM_IMAGE else OverlayType.COLOR,
+                scratchSegments = emptyList(),
+                hasScratched = false
+            )
+        }
+    }
+
+    fun setFrostedGlassOverlay() {
+        updateState(persist = false) {
+            it.copy(
+                overlayType = OverlayType.FROSTED_GLASS,
+                customOverlayUri = null,
                 scratchSegments = emptyList(),
                 hasScratched = false
             )
@@ -242,6 +255,7 @@ class GalleryViewModel(
             it.copy(
                 scratchColor = color,
                 customOverlayUri = null,
+                overlayType = OverlayType.COLOR,
                 scratchSegments = emptyList(),
                 hasScratched = false
             )
@@ -314,6 +328,8 @@ class GalleryViewModel(
     private fun restorePersistedState() {
         val storedUris = savedStateHandle.get<List<String>>(KEY_PERSISTED_URIS).orEmpty()
         val storedIndex = savedStateHandle.get<Int>(KEY_CURRENT_INDEX) ?: -1
+        val storedOverlayType = savedStateHandle.get<String>(KEY_OVERLAY_TYPE)
+        val storedScratchColor = savedStateHandle.get<Int>(KEY_SCRATCH_COLOR)
 
         if (storedUris.isEmpty()) return
 
@@ -335,10 +351,18 @@ class GalleryViewModel(
                 else -> 1
             }
 
+            val overlayType = try {
+                storedOverlayType?.let { OverlayType.valueOf(it) } ?: OverlayType.COLOR
+            } catch (e: IllegalArgumentException) {
+                OverlayType.COLOR
+            }
+
             updateState(persist = false) {
                 it.copy(
                     images = merged,
                     currentIndex = normalizedIndex.coerceIn(0, merged.lastIndex),
+                    overlayType = overlayType,
+                    scratchColor = storedScratchColor ?: com.example.composeapp.domain.DEFAULT_SCRATCH_COLOR,
                     isLoading = false,
                     error = null
                 )
@@ -459,6 +483,8 @@ class GalleryViewModel(
         private const val KEY_PERSISTED_URIS = "gallery:persisted_uris"
         private const val KEY_CURRENT_INDEX = "gallery:current_index"
         private const val KEY_PERSISTED_FOLDERS = "gallery:persisted_folders"
+        private const val KEY_OVERLAY_TYPE = "gallery:overlay_type"
+        private const val KEY_SCRATCH_COLOR = "gallery:scratch_color"
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
@@ -472,6 +498,8 @@ class GalleryViewModel(
             val currentUri = state.currentImage?.uri
             val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
+            savedStateHandle[KEY_OVERLAY_TYPE] = state.overlayType.name
+            savedStateHandle[KEY_SCRATCH_COLOR] = state.scratchColor
             
             // Note: Folder URIs are not persisted here to avoid complexity
             // Users can re-select folders after app restart
