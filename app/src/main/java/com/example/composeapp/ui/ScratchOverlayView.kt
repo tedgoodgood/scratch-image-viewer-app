@@ -77,6 +77,7 @@ class ScratchOverlayView @JvmOverloads constructor(
     }
 
     fun setScratchColor(color: Int) {
+        android.util.Log.d("ScratchOverlayView", "setScratchColor called with color: $color")
         scratchColor = color
         customOverlayUri = null
         frostedGlassUri = null
@@ -87,9 +88,12 @@ class ScratchOverlayView @JvmOverloads constructor(
             overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
             overlayCanvas?.drawColor(scratchColor)
+            android.util.Log.d("ScratchOverlayView", "Created color overlay: ${width}x${height}")
             
             // Redraw any existing scratches
             redrawScratches()
+        } else {
+            android.util.Log.w("ScratchOverlayView", "Cannot create overlay: width=$width, height=$height")
         }
         
         invalidate()
@@ -525,43 +529,59 @@ class ScratchOverlayView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        android.util.Log.d("ScratchOverlayView", "onSizeChanged: ${oldw}x${oldh} -> ${w}x${h}")
         
         if (w > 0 && h > 0) {
             // Create new overlay bitmap for the new size
             overlayBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
+            android.util.Log.d("ScratchOverlayView", "Created new overlay bitmap: ${w}x${h}")
             
             when {
                 customOverlayUri != null -> {
+                    android.util.Log.d("ScratchOverlayView", "Reloading custom overlay for new size")
                     customOverlayUri?.let { loadCustomOverlay(it) }
                 }
                 frostedGlassUri != null -> {
+                    android.util.Log.d("ScratchOverlayView", "Reloading frosted glass overlay for new size")
                     frostedGlassUri?.let { loadFrostedGlassOverlay(it) }
                 }
                 else -> {
+                    android.util.Log.d("ScratchOverlayView", "Applying color overlay for new size")
                     overlayCanvas?.drawColor(scratchColor)
                     redrawScratches()
                 }
             }
+        } else {
+            android.util.Log.w("ScratchOverlayView", "Invalid size for overlay creation: ${w}x${h}")
         }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
-        // CRITICAL FIX: Always draw the base image first to prevent black background
-        // This ensures there's always something to reveal when scratching
+        android.util.Log.d("ScratchOverlayView", "onDraw: baseImage=${baseImageBitmap!=null}, overlayBitmap=${overlayBitmap!=null}, scratches=${scratchSegments.size}")
+        
+        // STEP 1: ALWAYS draw the underlay image first (NEVER default to black!)
         baseImageBitmap?.let { baseBitmap ->
             canvas.drawBitmap(baseBitmap, 0f, 0f, null)
+            android.util.Log.d("ScratchOverlayView", "Drew underlay image: ${baseBitmap.width}x${baseBitmap.height}")
         } ?: run {
-            // If no base image is set, fill with a neutral color to prevent black
+            // Fallback: use a neutral color to prevent black background
             canvas.drawColor(Color.parseColor("#808080")) // Gray fallback
+            android.util.Log.w("ScratchOverlayView", "No underlay image available, using gray fallback")
         }
         
-        // Draw the overlay bitmap on top (with transparent scratches revealing the background)
+        // STEP 2: Draw overlay on top of underlay
         overlayBitmap?.let { bitmap ->
             canvas.drawBitmap(bitmap, 0f, 0f, null)
+            android.util.Log.d("ScratchOverlayView", "Drew overlay bitmap: ${bitmap.width}x${bitmap.height}")
+        } ?: run {
+            android.util.Log.w("ScratchOverlayView", "No overlay bitmap available")
         }
+        
+        // STEP 3: Scratch paths are already drawn into overlayBitmap with CLEAR mode
+        // They will reveal the underlay image drawn in STEP 1
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

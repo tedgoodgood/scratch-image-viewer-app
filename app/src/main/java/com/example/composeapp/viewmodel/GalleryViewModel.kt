@@ -204,7 +204,7 @@ class GalleryViewModel(
         uri?.let { takePersistablePermission(it) }
         updateState(persist = false) {
             it.copy(
-                baseImageUri = uri,
+                underlayImageUri = uri,
                 scratchSegments = emptyList(),
                 hasScratched = false
             )
@@ -341,7 +341,7 @@ class GalleryViewModel(
         val storedIndex = savedStateHandle.get<Int>(KEY_CURRENT_INDEX) ?: -1
         val storedOverlayType = savedStateHandle.get<String>(KEY_OVERLAY_TYPE)
         val storedScratchColor = savedStateHandle.get<Int>(KEY_SCRATCH_COLOR)
-        val storedBaseImageUri = savedStateHandle.get<String>(KEY_BASE_IMAGE_URI)?.let { parseUri(it) }
+        val storedUnderlayImageUri = savedStateHandle.get<String>(KEY_UNDERLAY_IMAGE_URI)?.let { parseUri(it) }
 
         if (storedUris.isEmpty()) return
 
@@ -375,7 +375,7 @@ class GalleryViewModel(
                     currentIndex = normalizedIndex.coerceIn(0, merged.lastIndex),
                     overlayType = overlayType,
                     scratchColor = storedScratchColor ?: com.example.composeapp.domain.DEFAULT_SCRATCH_COLOR,
-                    baseImageUri = storedBaseImageUri,
+                    underlayImageUri = storedUnderlayImageUri,
                     isLoading = false,
                     error = null
                 )
@@ -498,7 +498,7 @@ class GalleryViewModel(
         private const val KEY_PERSISTED_FOLDERS = "gallery:persisted_folders"
         private const val KEY_OVERLAY_TYPE = "gallery:overlay_type"
         private const val KEY_SCRATCH_COLOR = "gallery:scratch_color"
-        private const val KEY_BASE_IMAGE_URI = "gallery:base_image_uri"
+        private const val KEY_UNDERLAY_IMAGE_URI = "gallery:underlay_image_uri"
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
@@ -514,7 +514,7 @@ class GalleryViewModel(
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
             savedStateHandle[KEY_OVERLAY_TYPE] = state.overlayType.name
             savedStateHandle[KEY_SCRATCH_COLOR] = state.scratchColor
-            savedStateHandle[KEY_BASE_IMAGE_URI] = state.baseImageUri?.toString()
+            savedStateHandle[KEY_UNDERLAY_IMAGE_URI] = state.underlayImageUri?.toString()
             
             // Note: Folder URIs are not persisted here to avoid complexity
             // Users can re-select folders after app restart
