@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -171,18 +172,20 @@ class MainActivity : AppCompatActivity() {
 
         // Overlay color selection
         binding.colorGoldButton.setOnClickListener {
-            viewModel.setScratchColor(0xF7D4AF37.toInt()) // Semi-transparent gold (97% opacity)
+            viewModel.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold (98% opacity)
         }
 
         binding.colorSilverButton.setOnClickListener {
-            viewModel.setScratchColor(0xF7C0C0C0.toInt()) // Semi-transparent silver (97% opacity)
+            viewModel.setScratchColor(0xFAC0C0C0.toInt()) // Semi-transparent silver (98% opacity)
         }
 
         binding.colorBronzeButton.setOnClickListener {
-            viewModel.setScratchColor(0xF7CD7F32.toInt()) // Semi-transparent bronze (97% opacity)
+            viewModel.setScratchColor(0xFACD7F32.toInt()) // Semi-transparent bronze (98% opacity)
         }
 
         binding.customOverlayButton.setOnClickListener {
+            // Debug: Custom overlay button clicked
+            android.util.Log.d("MainActivity", "Custom overlay button clicked")
             val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                 type = "image/*"
             }
@@ -190,6 +193,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.frostedGlassButton.setOnClickListener {
+            // Debug: Frosted glass button clicked
+            android.util.Log.d("MainActivity", "Frosted glass button clicked")
             viewModel.setFrostedGlassOverlay()
         }
 
@@ -258,8 +263,19 @@ class MainActivity : AppCompatActivity() {
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
         // Update base image when either current image or base image URI changes
-        val targetBaseImageUri = state.baseImageUri ?: state.currentImage?.uri
+        // For custom overlay and frosted glass, base image should default to current image if not set
+        val targetBaseImageUri = when (state.overlayType) {
+            com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE,
+            com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
+                state.baseImageUri ?: state.currentImage?.uri
+            }
+            else -> {
+                state.baseImageUri
+            }
+        }
+        android.util.Log.d("MainActivity", "Base image update: type=${state.overlayType}, baseUri=${state.baseImageUri}, currentUri=${state.currentImage?.uri}, target=$targetBaseImageUri")
         if (targetBaseImageUri != currentBaseImageUri) {
+            android.util.Log.d("MainActivity", "Updating base image to: $targetBaseImageUri")
             updateBaseImage(targetBaseImageUri)
         }
         
@@ -268,18 +284,27 @@ class MainActivity : AppCompatActivity() {
             state.customOverlayUri != currentOverlayUri ||
             state.scratchColor != currentScratchColor) {
             
+            android.util.Log.d("MainActivity", "Overlay type changed: ${state.overlayType}, URI: ${state.customOverlayUri}")
+            
             when (state.overlayType) {
                 com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE -> {
-                    state.customOverlayUri?.let { uri ->
-                        binding.scratchOverlay.setCustomOverlay(uri)
+                    android.util.Log.d("MainActivity", "Setting custom overlay with URI: ${state.customOverlayUri}")
+                    if (state.customOverlayUri != null) {
+                        binding.scratchOverlay.setCustomOverlay(state.customOverlayUri)
+                    } else {
+                        // If no custom overlay URI is set, clear overlay to fallback state
+                        android.util.Log.d("MainActivity", "Custom overlay URI is null, clearing overlay")
+                        binding.scratchOverlay.setCustomOverlay(null)
                     }
                 }
                 com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
                     // For frosted glass, use the base image URI if available, otherwise current image
                     val frostedGlassUri = state.baseImageUri ?: state.currentImage?.uri
+                    android.util.Log.d("MainActivity", "Setting frosted glass overlay with URI: $frostedGlassUri")
                     binding.scratchOverlay.setFrostedGlassOverlay(frostedGlassUri)
                 }
                 com.example.composeapp.domain.OverlayType.COLOR -> {
+                    android.util.Log.d("MainActivity", "Setting color overlay: ${state.scratchColor}")
                     binding.scratchOverlay.setScratchColor(state.scratchColor)
                 }
             }
