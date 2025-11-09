@@ -64,6 +64,9 @@ class GalleryViewModel(
     fun selectImages(uris: List<Uri>) {
         if (uris.isEmpty()) return
 
+        android.util.Log.d("GalleryViewModel", "selectImages called with ${uris.size} URIs")
+        android.util.Log.d("GalleryViewModel", "Input URIs: ${uris.map { it.toString() }}")
+
         viewModelScope.launch {
             updateState(persist = false) { it.copy(isLoading = true, error = null) }
 
@@ -73,6 +76,9 @@ class GalleryViewModel(
                     extractImageItem(uri)
                 }
             }
+
+            android.util.Log.d("GalleryViewModel", "Valid items extracted: ${validItems.size}")
+            android.util.Log.d("GalleryViewModel", "Valid item URIs: ${validItems.map { it.uri.toString() }}")
 
             if (validItems.isEmpty()) {
                 updateState(persist = false) {
@@ -85,10 +91,16 @@ class GalleryViewModel(
             }
 
             val current = _state.value
+            android.util.Log.d("GalleryViewModel", "Current gallery size: ${current.images.size}")
+            android.util.Log.d("GalleryViewModel", "Current gallery URIs: ${current.images.map { it.uri.toString() }}")
+            
             val persistedImages = (current.images + validItems)
                 .filterNot { it.uri == defaultImage.uri }
                 .distinctBy { it.uri }
                 .sortedWith(compareBy(naturalSortComparator) { it.displayName })
+
+            android.util.Log.d("GalleryViewModel", "After deduplication: ${persistedImages.size} unique images")
+            android.util.Log.d("GalleryViewModel", "Unique URIs: ${persistedImages.map { it.uri.toString() }}")
 
             val merged = listOf(defaultImage) + persistedImages
             val previousPersistedCount = current.images.count { it.uri != defaultImage.uri }
@@ -97,6 +109,9 @@ class GalleryViewModel(
                 current.currentIndex >= merged.size -> merged.lastIndex
                 else -> current.currentIndex
             }
+
+            android.util.Log.d("GalleryViewModel", "Final merged gallery: ${merged.size} images")
+            android.util.Log.d("GalleryViewModel", "New current index: $newIndex")
 
             prefetchImages(merged)
 
@@ -114,6 +129,8 @@ class GalleryViewModel(
     }
 
     fun selectFolder(folderUri: Uri) {
+        android.util.Log.d("GalleryViewModel", "selectFolder called with URI: $folderUri")
+        
         viewModelScope.launch {
             updateState(persist = false) { it.copy(isLoading = true, error = null) }
 
@@ -125,6 +142,9 @@ class GalleryViewModel(
                     } else {
                         enumerateImagesFromLegacyFolder(folderUri)
                     }
+                    
+                    android.util.Log.d("GalleryViewModel", "Folder enumeration found ${images.size} images")
+                    android.util.Log.d("GalleryViewModel", "Folder image URIs: ${images.map { it.uri.toString() }}")
                     
                     // Performance warning for large folders
                     if (images.size > 1000) {
@@ -160,10 +180,16 @@ class GalleryViewModel(
 
             // Merge with existing images using the same logic as selectImages
             val current = _state.value
+            android.util.Log.d("GalleryViewModel", "Current gallery size before merge: ${current.images.size}")
+            android.util.Log.d("GalleryViewModel", "Current gallery URIs: ${current.images.map { it.uri.toString() }}")
+            
             val persistedImages = (current.images + folderImages)
                 .filterNot { it.uri == defaultImage.uri }
                 .distinctBy { it.uri }
                 .sortedWith(compareBy(naturalSortComparator) { it.displayName })
+
+            android.util.Log.d("GalleryViewModel", "After folder merge deduplication: ${persistedImages.size} unique images")
+            android.util.Log.d("GalleryViewModel", "Unique URIs after merge: ${persistedImages.map { it.uri.toString() }}")
 
             val merged = listOf(defaultImage) + persistedImages
             val previousPersistedCount = current.images.count { it.uri != defaultImage.uri }
@@ -172,6 +198,9 @@ class GalleryViewModel(
                 current.currentIndex >= merged.size -> merged.lastIndex
                 else -> current.currentIndex
             }
+
+            android.util.Log.d("GalleryViewModel", "Final merged gallery after folder: ${merged.size} images")
+            android.util.Log.d("GalleryViewModel", "New current index after folder: $newIndex")
 
             prefetchImages(merged)
 
