@@ -180,140 +180,18 @@
 
             </LinearLayout>
 
-            <!-- Brush size control -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Brush Size:"
-                    android:textColor="@android:color/white"
-                    android:textSize="14sp" />
-
-                <SeekBar
-                    android:id="@+id/brushSizeSeekBar"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:max="90"
-                    android:progress="30" />
-
-                <TextView
-                    android:id="@+id/brushSizeText"
-                    android:layout_width="40dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:textColor="@android:color/white"
-                    android:textSize="12sp" />
-
-            </LinearLayout>
-
-            <!-- Opacity control -->
+            <!-- Reset button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
+                android:gravity="center"
                 android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Opacity:"
-                    android:textColor="@android:color/white"
-                    android:textSize="14sp" />
-
-                <SeekBar
-                    android:id="@+id/opacitySlider"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:max="100"
-                    android:progress="98" />
-
-                <TextView
-                    android:id="@+id/opacityValue"
-                    android:layout_width="50dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="98%"
-                    android:textColor="@android:color/white"
-                    android:textSize="12sp" />
-
-            </LinearLayout>
-
-            <!-- Color picker control -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Color:"
-                    android:textColor="@android:color/white"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/colorPickerButton"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_margin="8dp"
-                    android:background="@android:drawable/ic_menu_gallery" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:orientation="horizontal">
-
-                    <ImageButton
-                        android:id="@+id/colorGoldButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="@drawable/color_button_background"
-                        android:contentDescription="Gold overlay"
-                        android:src="@drawable/color_gold" />
-
-                    <ImageButton
-                        android:id="@+id/colorSilverButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="@drawable/color_button_background"
-                        android:contentDescription="Silver overlay"
-                        android:src="@drawable/color_silver" />
-
-                    <ImageButton
-                        android:id="@+id/colorBronzeButton"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="@drawable/color_button_background"
-                        android:contentDescription="Bronze overlay"
-                        android:src="@drawable/color_bronze" />
-
-                </LinearLayout>
 
                 <Button
                     android:id="@+id/resetButton"
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
                     android:text="Reset"
                     android:textSize="12sp" />
 
