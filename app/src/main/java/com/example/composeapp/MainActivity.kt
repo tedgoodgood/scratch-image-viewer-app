@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     // Track current overlay state to avoid unnecessary updates
     private var currentOverlayType: com.example.composeapp.domain.OverlayType = com.example.composeapp.domain.OverlayType.COLOR
     private var currentOverlayUri: android.net.Uri? = null
-    private var currentBaseImageUri: android.net.Uri? = null
+    private var currentUnderlayImageUri: android.net.Uri? = null
     private var currentImageUri: android.net.Uri? = null
     private var currentScratchColor: Int = 0
 
@@ -262,21 +262,21 @@ class MainActivity : AppCompatActivity() {
         // Update scratch overlay
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
-        // Update base image when either current image or base image URI changes
-        // For custom overlay and frosted glass, base image should default to current image if not set
-        val targetBaseImageUri = when (state.overlayType) {
+        // Update base image when either current image or underlay image URI changes
+        // For custom overlay and frosted glass, underlay should default to current image if not set
+        val targetUnderlayImageUri = when (state.overlayType) {
             com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE,
             com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
-                state.baseImageUri ?: state.currentImage?.uri
+                state.underlayImageUri ?: state.currentImage?.uri
             }
             else -> {
-                state.baseImageUri
+                state.underlayImageUri
             }
         }
-        android.util.Log.d("MainActivity", "Base image update: type=${state.overlayType}, baseUri=${state.baseImageUri}, currentUri=${state.currentImage?.uri}, target=$targetBaseImageUri")
-        if (targetBaseImageUri != currentBaseImageUri) {
-            android.util.Log.d("MainActivity", "Updating base image to: $targetBaseImageUri")
-            updateBaseImage(targetBaseImageUri)
+        android.util.Log.d("MainActivity", "Underlay image update: type=${state.overlayType}, underlayUri=${state.underlayImageUri}, currentUri=${state.currentImage?.uri}, target=$targetUnderlayImageUri")
+        if (targetUnderlayImageUri != currentUnderlayImageUri) {
+            android.util.Log.d("MainActivity", "Updating underlay image to: $targetUnderlayImageUri")
+            updateUnderlayImage(targetUnderlayImageUri)
         }
         
         // Only update overlay when it actually changes
@@ -298,8 +298,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
-                    // For frosted glass, use the base image URI if available, otherwise current image
-                    val frostedGlassUri = state.baseImageUri ?: state.currentImage?.uri
+                    // For frosted glass, use the underlay image URI if available, otherwise current image
+                    val frostedGlassUri = state.underlayImageUri ?: state.currentImage?.uri
                     android.util.Log.d("MainActivity", "Setting frosted glass overlay with URI: $frostedGlassUri")
                     binding.scratchOverlay.setFrostedGlassOverlay(frostedGlassUri)
                 }
@@ -317,7 +317,7 @@ class MainActivity : AppCompatActivity() {
         
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
-        currentBaseImageUri = state.baseImageUri ?: state.currentImage?.uri
+        currentUnderlayImageUri = state.underlayImageUri ?: state.currentImage?.uri
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
 
@@ -337,9 +337,9 @@ class MainActivity : AppCompatActivity() {
         binding.fullscreenNextButton.isEnabled = state.canGoNext
     }
     
-    private fun updateBaseImage(imageUri: android.net.Uri?) {
+    private fun updateUnderlayImage(imageUri: android.net.Uri?) {
         imageUri?.let { uri ->
-            // Load the current image as the base image for overlay rendering
+            // Load the underlay image for the two-layer rendering system
             lifecycleScope.launch {
                 try {
                     val bitmap = withContext(Dispatchers.IO) {
@@ -364,11 +364,17 @@ class MainActivity : AppCompatActivity() {
                             it
                         }
                         binding.scratchOverlay.setBaseImage(scaledBitmap)
+                        android.util.Log.d("MainActivity", "Underlay image loaded and set successfully")
+                    } ?: run {
+                        android.util.Log.w("MainActivity", "Failed to load underlay image bitmap")
                     }
                 } catch (e: Exception) {
-                    // Handle error gracefully
+                    android.util.Log.e("MainActivity", "Error loading underlay image", e)
                 }
             }
+        } ?: run {
+            android.util.Log.d("MainActivity", "Clearing underlay image")
+            binding.scratchOverlay.setBaseImage(null)
         }
     }
 }

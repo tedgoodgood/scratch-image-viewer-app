@@ -549,19 +549,28 @@ class ScratchOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
-        // CRITICAL FIX: Always draw the base image first to prevent black background
-        // This ensures there's always something to reveal when scratching
+        // CRITICAL FIX: Two-layer rendering system
+        // Layer 1 (bottom): Always draw underlay image first - this is what shows when scratching
+        var underlayDrawn = false
         baseImageBitmap?.let { baseBitmap ->
             canvas.drawBitmap(baseBitmap, 0f, 0f, null)
-        } ?: run {
-            // If no base image is set, fill with a neutral color to prevent black
-            canvas.drawColor(Color.parseColor("#808080")) // Gray fallback
+            underlayDrawn = true
+            Log.d("ScratchOverlayView", "Drew base image bitmap as underlay")
         }
         
-        // Draw the overlay bitmap on top (with transparent scratches revealing the background)
+        if (!underlayDrawn) {
+            Log.w("ScratchOverlayView", "No underlay image available - this will cause black background when scratching!")
+        }
+        
+        // Layer 2 (top): Draw the overlay (gets scratched away to reveal underlay below)
         overlayBitmap?.let { bitmap ->
             canvas.drawBitmap(bitmap, 0f, 0f, null)
+            Log.d("ScratchOverlayView", "Drew overlay bitmap")
+        } ?: run {
+            Log.w("ScratchOverlayView", "No overlay bitmap available")
         }
+        
+        Log.d("ScratchOverlayView", "onDraw complete: underlayDrawn=$underlayDrawn, overlayBitmap=${overlayBitmap != null}, scratches=${scratchSegments.size}")
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
