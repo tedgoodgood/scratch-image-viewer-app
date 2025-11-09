@@ -11,6 +11,7 @@ data class GalleryState(
     @ColorInt val scratchColor: Int = DEFAULT_SCRATCH_COLOR,
     val customOverlayUri: Uri? = null,
     val overlayType: OverlayType = OverlayType.COLOR,
+    val baseImageUri: Uri? = null, // The image revealed when scratching (underlay)
     val scratchSegments: List<ScratchSegment> = emptyList(),
     val hasScratched: Boolean = false,
     val isLoading: Boolean = false,
@@ -30,4 +31,4 @@ data class ScratchSegment(
 )
 
 @ColorInt
-val DEFAULT_SCRATCH_COLOR: Int = 0xE6D4AF37.toInt() // Semi-transparent gold (90% opacity)
+val DEFAULT_SCRATCH_COLOR: Int = 0xF7D4AF37.toInt() // Semi-transparent gold (97% opacity)

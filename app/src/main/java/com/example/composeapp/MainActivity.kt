@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     // Track current overlay state to avoid unnecessary updates
     private var currentOverlayType: com.example.composeapp.domain.OverlayType = com.example.composeapp.domain.OverlayType.COLOR
     private var currentOverlayUri: android.net.Uri? = null
+    private var currentBaseImageUri: android.net.Uri? = null
     private var currentImageUri: android.net.Uri? = null
     private var currentScratchColor: Int = 0
 
@@ -66,6 +67,15 @@ class MainActivity : AppCompatActivity() {
             if (uri != null) {
                 viewModel.selectFolder(uri)
             }
+        }
+    }
+
+    private val selectUnderlayLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data
+            viewModel.selectUnderlayImage(uri)
         }
     }
 
@@ -111,6 +121,14 @@ class MainActivity : AppCompatActivity() {
             selectFolderLauncher.launch(Intent.createChooser(intent, "Select Folder"))
         }
 
+        // Underlay image selection
+        binding.selectUnderlayButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "image/*"
+            }
+            selectUnderlayLauncher.launch(Intent.createChooser(intent, "Select Underlay Image"))
+        }
+
         // Navigation controls
         binding.previousButton.setOnClickListener {
             viewModel.goToPrevious()
@@ -153,15 +171,15 @@ class MainActivity : AppCompatActivity() {
 
         // Overlay color selection
         binding.colorGoldButton.setOnClickListener {
-            viewModel.setScratchColor(0xE6D4AF37.toInt()) // Semi-transparent gold (90% opacity)
+            viewModel.setScratchColor(0xF7D4AF37.toInt()) // Semi-transparent gold (97% opacity)
         }
 
         binding.colorSilverButton.setOnClickListener {
-            viewModel.setScratchColor(0xE6C0C0C0.toInt()) // Semi-transparent silver (90% opacity)
+            viewModel.setScratchColor(0xF7C0C0C0.toInt()) // Semi-transparent silver (97% opacity)
         }
 
         binding.colorBronzeButton.setOnClickListener {
-            viewModel.setScratchColor(0xE6CD7F32.toInt()) // Semi-transparent bronze (90% opacity)
+            viewModel.setScratchColor(0xF7CD7F32.toInt()) // Semi-transparent bronze (97% opacity)
         }
 
         binding.customOverlayButton.setOnClickListener {
@@ -239,9 +257,10 @@ class MainActivity : AppCompatActivity() {
         // Update scratch overlay
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
-        // Always update the base image when the current image changes
-        if (state.currentImage?.uri != currentImageUri) {
-            updateBaseImage(state.currentImage?.uri)
+        // Update base image when either current image or base image URI changes
+        val targetBaseImageUri = state.baseImageUri ?: state.currentImage?.uri
+        if (targetBaseImageUri != currentBaseImageUri) {
+            updateBaseImage(targetBaseImageUri)
         }
         
         // Only update overlay when it actually changes
@@ -256,7 +275,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
-                    binding.scratchOverlay.setFrostedGlassOverlay(state.currentImage?.uri)
+                    // For frosted glass, use the base image URI if available, otherwise current image
+                    val frostedGlassUri = state.baseImageUri ?: state.currentImage?.uri
+                    binding.scratchOverlay.setFrostedGlassOverlay(frostedGlassUri)
                 }
                 com.example.composeapp.domain.OverlayType.COLOR -> {
                     binding.scratchOverlay.setScratchColor(state.scratchColor)
@@ -271,6 +292,7 @@ class MainActivity : AppCompatActivity() {
         
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
+        currentBaseImageUri = state.baseImageUri ?: state.currentImage?.uri
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
 

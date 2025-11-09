@@ -239,44 +239,45 @@
 
                     <ImageButton
                         android:id="@+id/colorGoldButton"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="4dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/color_button_background"
                         android:contentDescription="Gold overlay"
                         android:src="@drawable/color_gold" />
 
                     <ImageButton
                         android:id="@+id/colorSilverButton"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="4dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/color_button_background"
                         android:contentDescription="Silver overlay"
                         android:src="@drawable/color_silver" />
 
                     <ImageButton
                         android:id="@+id/colorBronzeButton"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="4dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/color_button_background"
                         android:contentDescription="Bronze overlay"
                         android:src="@drawable/color_bronze" />
 
                     <ImageButton
                         android:id="@+id/customOverlayButton"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="4dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/color_button_background"
                         android:contentDescription="Custom overlay image"
                         android:src="@android:drawable/ic_menu_gallery" />
 
                     <ImageButton
                         android:id="@+id/frostedGlassButton"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/color_button_background"
                         android:contentDescription="Frosted glass overlay"
                         android:src="@drawable/frosted_glass" />
@@ -311,7 +312,7 @@
                 android:id="@+id/selectImagesButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:text="Select Images"
                 android:textSize="12sp" />
 
@@ -319,7 +320,15 @@
                 android:id="@+id/selectFolderButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
                 android:text="Select Folder"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/selectUnderlayButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Underlay"
                 android:textSize="12sp" />
 
         </LinearLayout>

@@ -70,9 +70,9 @@ class ScratchOverlayView @JvmOverloads constructor(
     private val blurCache = mutableMapOf<String, Bitmap>()
 
     companion object {
-        private const val DEFAULT_SCRATCH_COLOR = 0xE6D4AF37.toInt() // Semi-transparent gold (90% opacity)
-        private const val BLUR_RADIUS = 35f // Further increased for stronger frosted glass effect
-        private const val MAX_BLUR_RADIUS_API_16 = 30f // Further increased for older devices
+        private const val DEFAULT_SCRATCH_COLOR = 0xF7D4AF37.toInt() // Semi-transparent gold (97% opacity)
+        private const val BLUR_RADIUS = 40f // Increased for stronger frosted glass effect
+        private const val MAX_BLUR_RADIUS_API_16 = 35f // Increased for older devices
     }
 
     fun setScratchColor(color: Int) {
@@ -540,15 +540,13 @@ class ScratchOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
-        // Draw the background image first if we have a frosted glass or custom overlay
-        // For both cases, we want to show the current gallery image as the base
-        when {
-            frostedGlassUri != null || customOverlayUri != null -> {
-                // Draw the base image (the current gallery image being scratched)
-                baseImageBitmap?.let { baseBitmap ->
-                    canvas.drawBitmap(baseBitmap, 0f, 0f, null)
-                }
-            }
+        // CRITICAL FIX: Always draw the base image first to prevent black background
+        // This ensures there's always something to reveal when scratching
+        baseImageBitmap?.let { baseBitmap ->
+            canvas.drawBitmap(baseBitmap, 0f, 0f, null)
+        } ?: run {
+            // If no base image is set, fill with a neutral color to prevent black
+            canvas.drawColor(Color.parseColor("#808080")) // Gray fallback
         }
         
         // Draw the overlay bitmap on top (with transparent scratches revealing the background)
