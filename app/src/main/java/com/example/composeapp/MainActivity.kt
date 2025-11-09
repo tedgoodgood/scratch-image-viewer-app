@@ -15,6 +15,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.composeapp.R
 import com.example.composeapp.databinding.ActivityMainBinding
 import com.example.composeapp.viewmodel.GalleryViewModel
@@ -149,15 +152,15 @@ class MainActivity : AppCompatActivity() {
 
         // Overlay color selection
         binding.colorGoldButton.setOnClickListener {
-            viewModel.setScratchColor(0x80D4AF37.toInt()) // Semi-transparent gold
+            viewModel.setScratchColor(0xE6D4AF37.toInt()) // Semi-transparent gold (90% opacity)
         }
 
         binding.colorSilverButton.setOnClickListener {
-            viewModel.setScratchColor(0x80C0C0C0.toInt()) // Semi-transparent silver
+            viewModel.setScratchColor(0xE6C0C0C0.toInt()) // Semi-transparent silver (90% opacity)
         }
 
         binding.colorBronzeButton.setOnClickListener {
-            viewModel.setScratchColor(0x80CD7F32.toInt()) // Semi-transparent bronze
+            viewModel.setScratchColor(0xE6CD7F32.toInt()) // Semi-transparent bronze (90% opacity)
         }
 
         binding.customOverlayButton.setOnClickListener {
@@ -172,7 +175,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.resetButton.setOnClickListener {
+            // Clear scratch segments in ViewModel
             viewModel.resetOverlay()
+            // Also trigger immediate overlay reset in the view
+            binding.scratchOverlay.resetOverlay()
         }
 
         // Error handling
@@ -232,10 +238,14 @@ class MainActivity : AppCompatActivity() {
         // Update scratch overlay
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
+        // Always update the base image when the current image changes
+        if (state.currentImage?.uri != currentImageUri) {
+            updateBaseImage(state.currentImage?.uri)
+        }
+        
         // Only update overlay when it actually changes
         if (state.overlayType != currentOverlayType || 
             state.customOverlayUri != currentOverlayUri ||
-            state.currentImage?.uri != currentImageUri ||
             state.scratchColor != currentScratchColor) {
             
             when (state.overlayType) {
@@ -255,9 +265,11 @@ class MainActivity : AppCompatActivity() {
             // Update tracking variables
             currentOverlayType = state.overlayType
             currentOverlayUri = state.customOverlayUri
-            currentImageUri = state.currentImage?.uri
             currentScratchColor = state.scratchColor
         }
+        
+        // Update current image URI tracking
+        currentImageUri = state.currentImage?.uri
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
 
@@ -275,5 +287,40 @@ class MainActivity : AppCompatActivity() {
         // Update fullscreen navigation buttons state
         binding.fullscreenPreviousButton.isEnabled = state.canGoPrevious
         binding.fullscreenNextButton.isEnabled = state.canGoNext
+    }
+    
+    private fun updateBaseImage(imageUri: android.net.Uri?) {
+        imageUri?.let { uri ->
+            // Load the current image as the base image for overlay rendering
+            lifecycleScope.launch {
+                try {
+                    val bitmap = withContext(Dispatchers.IO) {
+                        if (uri.scheme == "file") {
+                            val file = uri.toFile()
+                            android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                        } else {
+                            // For content URIs, use Glide to load the bitmap
+                            Glide.with(this@MainActivity)
+                                .asBitmap()
+                                .load(uri)
+                                .submit(binding.scratchOverlay.width, binding.scratchOverlay.height)
+                                .get()
+                        }
+                    }
+                    
+                    bitmap?.let {
+                        // Scale bitmap to fit the view dimensions
+                        val scaledBitmap = if (binding.scratchOverlay.width > 0 && binding.scratchOverlay.height > 0) {
+                            android.graphics.Bitmap.createScaledBitmap(it, binding.scratchOverlay.width, binding.scratchOverlay.height, true)
+                        } else {
+                            it
+                        }
+                        binding.scratchOverlay.setBaseImage(scaledBitmap)
+                    }
+                } catch (e: Exception) {
+                    // Handle error gracefully
+                }
+            }
+        }
     }
 }

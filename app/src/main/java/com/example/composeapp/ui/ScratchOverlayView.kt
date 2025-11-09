@@ -70,9 +70,9 @@ class ScratchOverlayView @JvmOverloads constructor(
     private val blurCache = mutableMapOf<String, Bitmap>()
 
     companion object {
-        private const val DEFAULT_SCRATCH_COLOR = 0x80D4AF37.toInt() // Semi-transparent gold (50% opacity)
-        private const val BLUR_RADIUS = 25f // Increased for better frosted glass effect
-        private const val MAX_BLUR_RADIUS_API_16 = 20f // Increased for older devices
+        private const val DEFAULT_SCRATCH_COLOR = 0xE6D4AF37.toInt() // Semi-transparent gold (90% opacity)
+        private const val BLUR_RADIUS = 35f // Further increased for stronger frosted glass effect
+        private const val MAX_BLUR_RADIUS_API_16 = 30f // Further increased for older devices
     }
 
     fun setScratchColor(color: Int) {
@@ -133,6 +133,9 @@ class ScratchOverlayView @JvmOverloads constructor(
     }
 
     fun clearScratches() {
+        // Clear scratch segments first
+        scratchSegments = emptyList()
+        
         overlayBitmap?.let { bitmap ->
             overlayCanvas?.let { canvas ->
                 when {
@@ -156,6 +159,30 @@ class ScratchOverlayView @JvmOverloads constructor(
                 overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 overlayCanvas = Canvas(overlayBitmap!!)
                 overlayCanvas?.drawColor(scratchColor)
+            }
+        }
+        invalidate()
+    }
+    
+    fun resetOverlay() {
+        // Force a complete reset by clearing everything and reloading
+        scratchSegments = emptyList()
+        scratchPath.reset()
+        
+        when {
+            customOverlayUri != null -> {
+                customOverlayUri?.let { loadCustomOverlay(it) }
+            }
+            frostedGlassUri != null -> {
+                frostedGlassUri?.let { loadFrostedGlassOverlay(it) }
+            }
+            else -> {
+                // Recreate color overlay
+                if (width > 0 && height > 0) {
+                    overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    overlayCanvas = Canvas(overlayBitmap!!)
+                    overlayCanvas?.drawColor(scratchColor)
+                }
             }
         }
         invalidate()
@@ -513,6 +540,18 @@ class ScratchOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
+        // Draw the background image first if we have a frosted glass or custom overlay
+        // For both cases, we want to show the current gallery image as the base
+        when {
+            frostedGlassUri != null || customOverlayUri != null -> {
+                // Draw the base image (the current gallery image being scratched)
+                baseImageBitmap?.let { baseBitmap ->
+                    canvas.drawBitmap(baseBitmap, 0f, 0f, null)
+                }
+            }
+        }
+        
+        // Draw the overlay bitmap on top (with transparent scratches revealing the background)
         overlayBitmap?.let { bitmap ->
             canvas.drawBitmap(bitmap, 0f, 0f, null)
         }
@@ -577,5 +616,10 @@ class ScratchOverlayView @JvmOverloads constructor(
 
     fun getScratchSegments(): List<ScratchSegment> {
         return scratchSegments
+    }
+    
+    fun setBaseImage(bitmap: Bitmap?) {
+        baseImageBitmap = bitmap
+        invalidate()
     }
 }
