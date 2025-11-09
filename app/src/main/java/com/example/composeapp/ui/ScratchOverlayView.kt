@@ -13,6 +13,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.net.Uri
+import android.util.Log
 import android.os.Build
 import android.renderscript.Allocation
 import android.renderscript.Element
@@ -70,7 +71,7 @@ class ScratchOverlayView @JvmOverloads constructor(
     private val blurCache = mutableMapOf<String, Bitmap>()
 
     companion object {
-        private const val DEFAULT_SCRATCH_COLOR = 0xF7D4AF37.toInt() // Semi-transparent gold (97% opacity)
+        private const val DEFAULT_SCRATCH_COLOR = 0xFAD4AF37.toInt() // Semi-transparent gold (98% opacity)
         private const val BLUR_RADIUS = 40f // Increased for stronger frosted glass effect
         private const val MAX_BLUR_RADIUS_API_16 = 35f // Increased for older devices
     }
@@ -95,23 +96,27 @@ class ScratchOverlayView @JvmOverloads constructor(
     }
 
     fun setCustomOverlay(uri: Uri?) {
+        android.util.Log.d("ScratchOverlayView", "setCustomOverlay called with URI: $uri")
         customOverlayUri = uri
         frostedGlassUri = null
         clearBlurCache()
         if (uri != null) {
             loadCustomOverlay(uri)
         } else {
+            android.util.Log.d("ScratchOverlayView", "Custom overlay URI is null, clearing scratches")
             clearScratches()
             invalidate()
         }
     }
 
     fun setFrostedGlassOverlay(uri: Uri?) {
+        android.util.Log.d("ScratchOverlayView", "setFrostedGlassOverlay called with URI: $uri")
         frostedGlassUri = uri
         customOverlayUri = null
         if (uri != null) {
             loadFrostedGlassOverlay(uri)
         } else {
+            android.util.Log.d("ScratchOverlayView", "Frosted glass URI is null, clearing cache and scratches")
             clearBlurCache()
             clearScratches()
             invalidate()
@@ -165,18 +170,22 @@ class ScratchOverlayView @JvmOverloads constructor(
     }
     
     fun resetOverlay() {
+        android.util.Log.d("ScratchOverlayView", "resetOverlay called")
         // Force a complete reset by clearing everything and reloading
         scratchSegments = emptyList()
         scratchPath.reset()
         
         when {
             customOverlayUri != null -> {
+                android.util.Log.d("ScratchOverlayView", "Reset: Reloading custom overlay")
                 customOverlayUri?.let { loadCustomOverlay(it) }
             }
             frostedGlassUri != null -> {
+                android.util.Log.d("ScratchOverlayView", "Reset: Reloading frosted glass overlay")
                 frostedGlassUri?.let { loadFrostedGlassOverlay(it) }
             }
             else -> {
+                android.util.Log.d("ScratchOverlayView", "Reset: Recreating color overlay")
                 // Recreate color overlay
                 if (width > 0 && height > 0) {
                     overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -260,7 +269,7 @@ class ScratchOverlayView @JvmOverloads constructor(
                 }
                 
                 bitmap?.let {
-                    baseImageBitmap = it
+                    // Don't set baseImageBitmap here - it should be managed by setBaseImage()
                     // Scale bitmap to fit the view dimensions
                     val scaledBitmap = if (width > 0 && height > 0) {
                         Bitmap.createScaledBitmap(it, width, height, true)
