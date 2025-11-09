@@ -188,40 +188,6 @@ class GalleryViewModel(
         }
     }
 
-    fun selectOverlay(uri: Uri?) {
-        uri?.let { takePersistablePermission(it) }
-        updateState(persist = false) {
-            it.copy(
-                customOverlayUri = uri,
-                overlayType = if (uri != null) OverlayType.CUSTOM_IMAGE else OverlayType.COLOR,
-                scratchSegments = emptyList(),
-                hasScratched = false
-            )
-        }
-    }
-
-    fun selectUnderlayImage(uri: Uri?) {
-        uri?.let { takePersistablePermission(it) }
-        updateState(persist = false) {
-            it.copy(
-                underlayImageUri = uri,
-                scratchSegments = emptyList(),
-                hasScratched = false
-            )
-        }
-    }
-
-    fun setFrostedGlassOverlay() {
-        updateState(persist = false) {
-            it.copy(
-                overlayType = OverlayType.FROSTED_GLASS,
-                customOverlayUri = null,
-                scratchSegments = emptyList(),
-                hasScratched = false
-            )
-        }
-    }
-
     fun goToPrevious() {
         updateState {
             if (it.canGoPrevious) {
@@ -265,8 +231,46 @@ class GalleryViewModel(
         updateState(persist = false) {
             it.copy(
                 scratchColor = color,
-                customOverlayUri = null,
-                overlayType = OverlayType.COLOR,
+                scratchSegments = emptyList(),
+                hasScratched = false
+            )
+        }
+    }
+
+    fun setOverlayOpacity(opacityPercent: Int) {
+        // Convert 0-100% to 0-255 for Color.argb()
+        val opacity255 = (opacityPercent * 255) / 100
+        
+        updateState(persist = true) {
+            // Keep existing RGB values, just change opacity
+            val currentColor = it.scratchColor
+            val newColor = android.graphics.Color.argb(
+                opacity255,
+                android.graphics.Color.red(currentColor),
+                android.graphics.Color.green(currentColor),
+                android.graphics.Color.blue(currentColor)
+            )
+            it.copy(
+                overlayOpacity = opacity255,
+                scratchColor = newColor,
+                scratchSegments = emptyList(),
+                hasScratched = false
+            )
+        }
+    }
+
+    fun setOverlayColor(color: Int) {
+        updateState(persist = true) {
+            // Keep existing opacity, just change RGB values
+            val currentOpacity = it.overlayOpacity
+            val newColor = android.graphics.Color.argb(
+                currentOpacity,
+                android.graphics.Color.red(color),
+                android.graphics.Color.green(color),
+                android.graphics.Color.blue(color)
+            )
+            it.copy(
+                scratchColor = newColor,
                 scratchSegments = emptyList(),
                 hasScratched = false
             )
@@ -339,11 +343,25 @@ class GalleryViewModel(
     private fun restorePersistedState() {
         val storedUris = savedStateHandle.get<List<String>>(KEY_PERSISTED_URIS).orEmpty()
         val storedIndex = savedStateHandle.get<Int>(KEY_CURRENT_INDEX) ?: -1
-        val storedOverlayType = savedStateHandle.get<String>(KEY_OVERLAY_TYPE)
         val storedScratchColor = savedStateHandle.get<Int>(KEY_SCRATCH_COLOR)
-        val storedUnderlayImageUri = savedStateHandle.get<String>(KEY_UNDERLAY_IMAGE_URI)?.let { parseUri(it) }
+        val storedOverlayOpacity = savedStateHandle.get<Int>(KEY_OVERLAY_OPACITY) ?: DEFAULT_OPACITY
+        val storedOverlayColor = savedStateHandle.get<Int>(KEY_OVERLAY_COLOR) ?: DEFAULT_COLOR
 
-        if (storedUris.isEmpty()) return
+        if (storedUris.isEmpty()) {
+            // Even with no stored images, load saved opacity and color settings
+            updateState(persist = false) {
+                it.copy(
+                    overlayOpacity = storedOverlayOpacity,
+                    scratchColor = android.graphics.Color.argb(
+                        storedOverlayOpacity,
+                        android.graphics.Color.red(storedOverlayColor),
+                        android.graphics.Color.green(storedOverlayColor),
+                        android.graphics.Color.blue(storedOverlayColor)
+                    )
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             updateState(persist = false) { it.copy(isLoading = true) }
@@ -363,19 +381,17 @@ class GalleryViewModel(
                 else -> 1
             }
 
-            val overlayType = try {
-                storedOverlayType?.let { OverlayType.valueOf(it) } ?: OverlayType.COLOR
-            } catch (e: IllegalArgumentException) {
-                OverlayType.COLOR
-            }
-
             updateState(persist = false) {
                 it.copy(
                     images = merged,
                     currentIndex = normalizedIndex.coerceIn(0, merged.lastIndex),
-                    overlayType = overlayType,
-                    scratchColor = storedScratchColor ?: com.example.composeapp.domain.DEFAULT_SCRATCH_COLOR,
-                    underlayImageUri = storedUnderlayImageUri,
+                    scratchColor = storedScratchColor ?: android.graphics.Color.argb(
+                        storedOverlayOpacity,
+                        android.graphics.Color.red(storedOverlayColor),
+                        android.graphics.Color.green(storedOverlayColor),
+                        android.graphics.Color.blue(storedOverlayColor)
+                    ),
+                    overlayOpacity = storedOverlayOpacity,
                     isLoading = false,
                     error = null
                 )
@@ -499,9 +515,13 @@ class GalleryViewModel(
         private const val KEY_OVERLAY_TYPE = "gallery:overlay_type"
         private const val KEY_SCRATCH_COLOR = "gallery:scratch_color"
         private const val KEY_UNDERLAY_IMAGE_URI = "gallery:underlay_image_uri"
+        private const val KEY_OVERLAY_OPACITY = "gallery:overlay_opacity"
+        private const val KEY_OVERLAY_COLOR = "gallery:overlay_color"
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
+        private const val DEFAULT_OPACITY = 250  // 98%
+        private const val DEFAULT_COLOR = android.graphics.Color.RED
 
         internal fun persistGalleryState(
             state: GalleryState,
@@ -512,9 +532,12 @@ class GalleryViewModel(
             val currentUri = state.currentImage?.uri
             val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
-            savedStateHandle[KEY_OVERLAY_TYPE] = state.overlayType.name
             savedStateHandle[KEY_SCRATCH_COLOR] = state.scratchColor
-            savedStateHandle[KEY_UNDERLAY_IMAGE_URI] = state.underlayImageUri?.toString()
+            savedStateHandle[KEY_OVERLAY_OPACITY] = state.overlayOpacity
+            
+            // Save color without alpha for persistence
+            val colorWithoutAlpha = state.scratchColor and 0x00FFFFFF
+            savedStateHandle[KEY_OVERLAY_COLOR] = colorWithoutAlpha
             
             // Note: Folder URIs are not persisted here to avoid complexity
             // Users can re-select folders after app restart
