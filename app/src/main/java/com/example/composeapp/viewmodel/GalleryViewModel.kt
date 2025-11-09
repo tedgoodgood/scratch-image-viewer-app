@@ -222,7 +222,7 @@ class GalleryViewModel(
     }
 
     fun setBrushSize(size: Float) {
-        updateState(persist = false) {
+        updateState(persist = true) {
             it.copy(brushSize = size.coerceIn(MIN_BRUSH_RADIUS, MAX_BRUSH_RADIUS))
         }
     }
@@ -346,6 +346,7 @@ class GalleryViewModel(
         val storedScratchColor = savedStateHandle.get<Int>(KEY_SCRATCH_COLOR)
         val storedOverlayOpacity = savedStateHandle.get<Int>(KEY_OVERLAY_OPACITY) ?: DEFAULT_OPACITY
         val storedOverlayColor = savedStateHandle.get<Int>(KEY_OVERLAY_COLOR) ?: DEFAULT_COLOR
+        val storedBrushSize = savedStateHandle.get<Float>(KEY_BRUSH_SIZE) ?: DEFAULT_BRUSH_SIZE
 
         if (storedUris.isEmpty()) {
             // Even with no stored images, load saved opacity and color settings
@@ -357,7 +358,8 @@ class GalleryViewModel(
                         android.graphics.Color.red(storedOverlayColor),
                         android.graphics.Color.green(storedOverlayColor),
                         android.graphics.Color.blue(storedOverlayColor)
-                    )
+                    ),
+                    brushSize = storedBrushSize
                 )
             }
             return
@@ -392,6 +394,7 @@ class GalleryViewModel(
                         android.graphics.Color.blue(storedOverlayColor)
                     ),
                     overlayOpacity = storedOverlayOpacity,
+                    brushSize = storedBrushSize,
                     isLoading = false,
                     error = null
                 )
@@ -517,9 +520,11 @@ class GalleryViewModel(
         private const val KEY_UNDERLAY_IMAGE_URI = "gallery:underlay_image_uri"
         private const val KEY_OVERLAY_OPACITY = "gallery:overlay_opacity"
         private const val KEY_OVERLAY_COLOR = "gallery:overlay_color"
+        private const val KEY_BRUSH_SIZE = "gallery:brush_size"
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
+        private const val DEFAULT_BRUSH_SIZE = 40f
         private const val DEFAULT_OPACITY = 250  // 98%
         private const val DEFAULT_COLOR = android.graphics.Color.RED
 
@@ -534,6 +539,7 @@ class GalleryViewModel(
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
             savedStateHandle[KEY_SCRATCH_COLOR] = state.scratchColor
             savedStateHandle[KEY_OVERLAY_OPACITY] = state.overlayOpacity
+            savedStateHandle[KEY_BRUSH_SIZE] = state.brushSize
             
             // Save color without alpha for persistence
             val colorWithoutAlpha = state.scratchColor and 0x00FFFFFF

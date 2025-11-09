@@ -4,11 +4,17 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
@@ -140,51 +146,6 @@ class MainActivity : AppCompatActivity() {
             viewModel.toggleFullscreen()
         }
 
-        // Brush size control
-        binding.brushSizeSeekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                val brushSize = 10f + progress // Range from 10 to 100
-                binding.brushSizeText.text = brushSize.toInt().toString()
-                if (fromUser) {
-                    viewModel.setBrushSize(brushSize)
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
-        })
-
-        // Opacity slider control
-        binding.opacitySlider.max = 100
-        binding.opacitySlider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.opacityValue.text = "$progress%"
-                if (fromUser) {
-                    viewModel.setOverlayOpacity(progress)
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
-        })
-
-        // Color picker control
-        binding.colorPickerButton.setOnClickListener {
-            showColorPickerDialog()
-        }
-
-        // Overlay color selection
-        binding.colorGoldButton.setOnClickListener {
-            viewModel.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold (98% opacity)
-        }
-
-        binding.colorSilverButton.setOnClickListener {
-            viewModel.setScratchColor(0xFAC0C0C0.toInt()) // Semi-transparent silver (98% opacity)
-        }
-
-        binding.colorBronzeButton.setOnClickListener {
-            viewModel.setScratchColor(0xFACD7F32.toInt()) // Semi-transparent bronze (98% opacity)
-        }
-
         binding.resetButton.setOnClickListener {
             // Clear scratch segments in ViewModel
             viewModel.resetOverlay()
@@ -197,12 +158,32 @@ class MainActivity : AppCompatActivity() {
             viewModel.clearError()
         }
 
-        // Initialize brush size
-        binding.brushSizeText.text = "40"
-        
         // Initialize with default color overlay to ensure overlay bitmap exists
         binding.scratchOverlay.post {
             binding.scratchOverlay.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_opacity -> {
+                showOpacityDialog()
+                true
+            }
+            R.id.menu_brush_size -> {
+                showBrushSizeDialog()
+                true
+            }
+            R.id.menu_color -> {
+                showColorPickerDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -271,15 +252,6 @@ class MainActivity : AppCompatActivity() {
             currentScratchColor = state.scratchColor
         }
         
-        // Update opacity slider to saved value
-        val opacityPercent = (state.overlayOpacity * 100) / 255
-        binding.opacitySlider.progress = opacityPercent
-        binding.opacityValue.text = "$opacityPercent%"
-        
-        // Update color picker button to saved color
-        val colorWithoutAlpha = state.scratchColor and 0x00FFFFFF
-        binding.colorPickerButton.setBackgroundColor(colorWithoutAlpha)
-        
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
         
@@ -306,25 +278,108 @@ class MainActivity : AppCompatActivity() {
         binding.scratchOverlay.setUnderlayImage(imageUri)
     }
     
+    private fun showOpacityDialog() {
+        val currentOpacity = viewModel.state.value?.overlayOpacity?.let { 
+            (it * 100) / 255 
+        } ?: 98
+        
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Set Opacity (%)")
+        
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(currentOpacity.toString())
+            setSelectAllOnFocus(true)
+        }
+        
+        builder.setView(input)
+        builder.setPositiveButton("Save") { dialog, _ ->
+            val opacity = input.text.toString().toIntOrNull()
+            if (opacity != null && opacity in 0..100) {
+                viewModel.setOverlayOpacity(opacity)
+                Toast.makeText(this, "Opacity set to $opacity%", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Please enter a number between 0-100", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+        builder.show()
+    }
+
+    private fun showBrushSizeDialog() {
+        val currentBrushSize = viewModel.state.value?.brushSize ?: 10f
+        
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Set Brush Size (pixels)")
+        
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(currentBrushSize.toString())
+            setSelectAllOnFocus(true)
+        }
+        
+        builder.setView(input)
+        builder.setPositiveButton("Save") { dialog, _ ->
+            val brushSize = input.text.toString().toFloatOrNull()
+            if (brushSize != null && brushSize > 0) {
+                viewModel.setBrushSize(brushSize)
+                Toast.makeText(this, "Brush size set to $brushSize", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+        builder.show()
+    }
+
     private fun showColorPickerDialog() {
-        val colors = listOf(
-            "Red" to android.graphics.Color.RED,
-            "Blue" to android.graphics.Color.BLUE,
-            "Green" to android.graphics.Color.GREEN,
-            "Yellow" to android.graphics.Color.YELLOW,
-            "Magenta" to android.graphics.Color.MAGENTA,
-            "Cyan" to android.graphics.Color.CYAN,
-            "Black" to android.graphics.Color.BLACK,
-            "White" to android.graphics.Color.WHITE
+        val currentColor = viewModel.state.value?.scratchColor ?: android.graphics.Color.RED
+        val rgbColor = android.graphics.Color.argb(
+            255,  // No alpha for color selection
+            android.graphics.Color.red(currentColor),
+            android.graphics.Color.green(currentColor),
+            android.graphics.Color.blue(currentColor)
         )
         
-        val colorNames = colors.map { it.first }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Choose Color")
-            .setItems(colorNames) { _, which ->
-                val selectedColor = colors[which].second
-                viewModel.setOverlayColor(selectedColor)
-            }
-            .show()
+        // Simple preset colors dialog
+        val colors = intArrayOf(
+            android.graphics.Color.RED,
+            android.graphics.Color.BLUE,
+            android.graphics.Color.GREEN,
+            android.graphics.Color.YELLOW,
+            android.graphics.Color.MAGENTA,
+            android.graphics.Color.CYAN,
+            android.graphics.Color.BLACK,
+            android.graphics.Color.WHITE,
+            android.graphics.Color.GRAY,
+            android.graphics.Color.DKGRAY,
+            android.graphics.Color.LTGRAY,
+            android.graphics.Color.parseColor("#FFA500")  // Orange
+        )
+        
+        val colorNames = arrayOf(
+            "Red", "Blue", "Green", "Yellow", 
+            "Magenta", "Cyan", "Black", "White",
+            "Gray", "Dark Gray", "Light Gray", "Orange"
+        )
+        
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Select Color")
+        
+        // Find current selection
+        val currentSelection = colors.indexOfFirst { 
+            it and 0x00FFFFFF == rgbColor and 0x00FFFFFF 
+        }.coerceAtLeast(0)
+        
+        builder.setSingleChoiceItems(colorNames, currentSelection) { _, which ->
+            val selectedColor = colors[which]
+            viewModel.setOverlayColor(selectedColor)
+            Toast.makeText(this, "Color set to ${colorNames[which]}", Toast.LENGTH_SHORT).show()
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+        builder.setPositiveButton("Apply") { dialog, _ -> dialog.dismiss() }
+        builder.show()
     }
 }
