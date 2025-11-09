@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -31,9 +32,6 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: GalleryViewModel by viewModels { GalleryViewModel.Factory }
     
     // Track current overlay state to avoid unnecessary updates
-    private var currentOverlayType: com.example.composeapp.domain.OverlayType = com.example.composeapp.domain.OverlayType.COLOR
-    private var currentOverlayUri: android.net.Uri? = null
-    private var currentUnderlayImageUri: android.net.Uri? = null
     private var currentImageUri: android.net.Uri? = null
     private var currentScratchColor: Int = 0
 
@@ -51,15 +49,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val selectOverlayLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val uri = result.data?.data
-            viewModel.selectOverlay(uri)
-        }
-    }
-
     private val selectFolderLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -68,15 +57,6 @@ class MainActivity : AppCompatActivity() {
             if (uri != null) {
                 viewModel.selectFolder(uri)
             }
-        }
-    }
-
-    private val selectUnderlayLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val uri = result.data?.data
-            viewModel.selectUnderlayImage(uri)
         }
     }
 
@@ -94,6 +74,18 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         observeViewModel()
+        
+        // Fix navigation bar obstruction
+        ViewCompat.setOnApplyWindowInsetsListener(binding.controlsContainer) { v, insets ->
+            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                navBarHeight + 16  // 16dp extra spacing
+            )
+            insets
+        }
     }
 
     private fun setupUI() {
@@ -120,14 +112,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             selectFolderLauncher.launch(Intent.createChooser(intent, "Select Folder"))
-        }
-
-        // Underlay image selection
-        binding.selectUnderlayButton.setOnClickListener {
-            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = "image/*"
-            }
-            selectUnderlayLauncher.launch(Intent.createChooser(intent, "Select Underlay Image"))
         }
 
         // Navigation controls
@@ -170,6 +154,24 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
         })
 
+        // Opacity slider control
+        binding.opacitySlider.max = 100
+        binding.opacitySlider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.opacityValue.text = "$progress%"
+                if (fromUser) {
+                    viewModel.setOverlayOpacity(progress)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
+
+        // Color picker control
+        binding.colorPickerButton.setOnClickListener {
+            showColorPickerDialog()
+        }
+
         // Overlay color selection
         binding.colorGoldButton.setOnClickListener {
             viewModel.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold (98% opacity)
@@ -181,21 +183,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.colorBronzeButton.setOnClickListener {
             viewModel.setScratchColor(0xFACD7F32.toInt()) // Semi-transparent bronze (98% opacity)
-        }
-
-        binding.customOverlayButton.setOnClickListener {
-            // Debug: Custom overlay button clicked
-            android.util.Log.d("MainActivity", "Custom overlay button clicked")
-            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = "image/*"
-            }
-            selectOverlayLauncher.launch(Intent.createChooser(intent, "Select Overlay Image"))
-        }
-
-        binding.frostedGlassButton.setOnClickListener {
-            // Debug: Frosted glass button clicked
-            android.util.Log.d("MainActivity", "Frosted glass button clicked")
-            viewModel.setFrostedGlassOverlay()
         }
 
         binding.resetButton.setOnClickListener {
@@ -216,8 +203,6 @@ class MainActivity : AppCompatActivity() {
         // Initialize with default color overlay to ensure overlay bitmap exists
         binding.scratchOverlay.post {
             binding.scratchOverlay.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold
-            // Set default underlay to ensure we never have black background
-            setDefaultUnderlay()
         }
     }
 
@@ -271,53 +256,32 @@ class MainActivity : AppCompatActivity() {
         binding.scratchOverlay.setBrushSize(state.brushSize)
         
         // Update underlay image - ALWAYS show something when scratching
-        // Priority: explicit underlay -> current gallery image -> default image
-        val targetUnderlayUri = state.underlayImageUri ?: state.currentImage?.uri
-        android.util.Log.d("MainActivity", "Underlay update: type=${state.overlayType}, underlayUri=${state.underlayImageUri}, currentUri=${state.currentImage?.uri}, target=$targetUnderlayUri")
-        if (targetUnderlayUri != currentUnderlayImageUri) {
+        // Use current gallery image as underlay
+        val targetUnderlayUri = state.currentImage?.uri
+        android.util.Log.d("MainActivity", "Underlay update: currentUri=${state.currentImage?.uri}, target=$targetUnderlayUri")
+        if (targetUnderlayUri != currentImageUri) {
             android.util.Log.d("MainActivity", "Updating underlay image to: $targetUnderlayUri")
             updateUnderlayImage(targetUnderlayUri)
         }
         
-        // Only update overlay when it actually changes
-        if (state.overlayType != currentOverlayType || 
-            state.customOverlayUri != currentOverlayUri ||
-            state.scratchColor != currentScratchColor) {
-            
-            android.util.Log.d("MainActivity", "Overlay type changed: ${state.overlayType}, URI: ${state.customOverlayUri}")
-            
-            when (state.overlayType) {
-                com.example.composeapp.domain.OverlayType.CUSTOM_IMAGE -> {
-                    android.util.Log.d("MainActivity", "Setting custom overlay with URI: ${state.customOverlayUri}")
-                    if (state.customOverlayUri != null) {
-                        binding.scratchOverlay.setCustomOverlay(state.customOverlayUri)
-                    } else {
-                        // If no custom overlay URI is set, clear overlay to fallback state
-                        android.util.Log.d("MainActivity", "Custom overlay URI is null, clearing overlay")
-                        binding.scratchOverlay.setCustomOverlay(null)
-                    }
-                }
-                com.example.composeapp.domain.OverlayType.FROSTED_GLASS -> {
-                    // For frosted glass, use the underlay image URI if available, otherwise current image
-                    val frostedGlassUri = state.underlayImageUri ?: state.currentImage?.uri
-                    android.util.Log.d("MainActivity", "Setting frosted glass overlay with URI: $frostedGlassUri")
-                    binding.scratchOverlay.setFrostedGlassOverlay(frostedGlassUri)
-                }
-                com.example.composeapp.domain.OverlayType.COLOR -> {
-                    android.util.Log.d("MainActivity", "Setting color overlay: ${state.scratchColor}")
-                    binding.scratchOverlay.setScratchColor(state.scratchColor)
-                }
-            }
-            
-            // Update tracking variables
-            currentOverlayType = state.overlayType
-            currentOverlayUri = state.customOverlayUri
+        // Update scratch color if it changed
+        if (state.scratchColor != currentScratchColor) {
+            android.util.Log.d("MainActivity", "Setting color overlay: ${state.scratchColor}")
+            binding.scratchOverlay.setScratchColor(state.scratchColor)
             currentScratchColor = state.scratchColor
         }
         
+        // Update opacity slider to saved value
+        val opacityPercent = (state.overlayOpacity * 100) / 255
+        binding.opacitySlider.progress = opacityPercent
+        binding.opacityValue.text = "$opacityPercent%"
+        
+        // Update color picker button to saved color
+        val colorWithoutAlpha = state.scratchColor and 0x00FFFFFF
+        binding.colorPickerButton.setBackgroundColor(colorWithoutAlpha)
+        
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
-        currentUnderlayImageUri = state.underlayImageUri ?: state.currentImage?.uri
         
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
 
@@ -339,54 +303,28 @@ class MainActivity : AppCompatActivity() {
     
     private fun updateUnderlayImage(imageUri: android.net.Uri?) {
         android.util.Log.d("MainActivity", "updateUnderlayImage called with URI: $imageUri")
-        imageUri?.let { uri ->
-            // Load the underlay image for scratch rendering
-            lifecycleScope.launch {
-                try {
-                    val bitmap = withContext(Dispatchers.IO) {
-                        if (uri.scheme == "file") {
-                            val file = uri.toFile()
-                            android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                        } else {
-                            // For content URIs, use Glide to load the bitmap
-                            Glide.with(this@MainActivity)
-                                .asBitmap()
-                                .load(uri)
-                                .submit()
-                                .get()
-                        }
-                    }
-                    
-                    bitmap?.let {
-                        android.util.Log.d("MainActivity", "Underlay bitmap loaded successfully: ${it.width}x${it.height}")
-                        android.util.Log.d("MainActivity", "ScratchOverlayView dimensions: ${binding.scratchOverlay.width}x${binding.scratchOverlay.height}")
-                        
-                        // Scale bitmap to fit the view dimensions
-                        val scaledBitmap = if (binding.scratchOverlay.width > 0 && binding.scratchOverlay.height > 0) {
-                            android.graphics.Bitmap.createScaledBitmap(it, binding.scratchOverlay.width, binding.scratchOverlay.height, true)
-                        } else {
-                            android.util.Log.w("MainActivity", "ScratchOverlayView has zero dimensions, using original bitmap")
-                            it
-                        }
-                        android.util.Log.d("MainActivity", "Setting underlay bitmap in ScratchOverlayView: ${scaledBitmap.width}x${scaledBitmap.height}")
-                        binding.scratchOverlay.setBaseImage(scaledBitmap)
-                    } ?: run {
-                        android.util.Log.e("MainActivity", "Failed to load underlay bitmap")
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MainActivity", "Error loading underlay image", e)
-                }
-            }
-        } ?: run {
-            android.util.Log.d("MainActivity", "No underlay URI provided, clearing base image")
-            binding.scratchOverlay.setBaseImage(null)
-        }
+        binding.scratchOverlay.setUnderlayImage(imageUri)
     }
     
-    private fun setDefaultUnderlay() {
-        // Set a default underlay image to prevent black background
-        val defaultUri = android.net.Uri.parse("https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80")
-        android.util.Log.d("MainActivity", "Setting default underlay image")
-        updateUnderlayImage(defaultUri)
+    private fun showColorPickerDialog() {
+        val colors = listOf(
+            "Red" to android.graphics.Color.RED,
+            "Blue" to android.graphics.Color.BLUE,
+            "Green" to android.graphics.Color.GREEN,
+            "Yellow" to android.graphics.Color.YELLOW,
+            "Magenta" to android.graphics.Color.MAGENTA,
+            "Cyan" to android.graphics.Color.CYAN,
+            "Black" to android.graphics.Color.BLACK,
+            "White" to android.graphics.Color.WHITE
+        )
+        
+        val colorNames = colors.map { it.first }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Choose Color")
+            .setItems(colorNames) { _, which ->
+                val selectedColor = colors[which].second
+                viewModel.setOverlayColor(selectedColor)
+            }
+            .show()
     }
 }

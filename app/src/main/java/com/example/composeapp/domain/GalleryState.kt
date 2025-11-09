@@ -9,9 +9,7 @@ data class GalleryState(
     val currentIndex: Int = -1,
     val brushSize: Float = 40f,
     @ColorInt val scratchColor: Int = DEFAULT_SCRATCH_COLOR,
-    val customOverlayUri: Uri? = null,
-    val overlayType: OverlayType = OverlayType.COLOR,
-    val underlayImageUri: Uri? = null, // The image revealed when scratching (underlay)
+    val overlayOpacity: Int = 250, // 0-255, default 98%
     val scratchSegments: List<ScratchSegment> = emptyList(),
     val hasScratched: Boolean = false,
     val isLoading: Boolean = false,
