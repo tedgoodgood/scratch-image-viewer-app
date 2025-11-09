@@ -165,11 +165,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        android.util.Log.d("MainActivity", "onCreateOptionsMenu called")
         menuInflater.inflate(R.menu.main_menu, menu)
+        android.util.Log.d("MainActivity", "Menu inflated with ${menu?.size()} items")
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        android.util.Log.d("MainActivity", "Menu item selected: ${item.itemId} - ${item.title}")
         return when (item.itemId) {
             R.id.menu_opacity -> {
                 showOpacityDialog()
@@ -210,12 +213,19 @@ class MainActivity : AppCompatActivity() {
         // Gallery visibility
         binding.galleryContainer.visibility = if (state.hasImages && !state.isLoading) View.VISIBLE else View.GONE
 
-        // Update current image
-        state.currentImage?.let { imageItem ->
-            Glide.with(this)
-                .load(imageItem.uri)
-                .into(binding.mainImage)
-            android.util.Log.d("MainActivity", "Updated main image: ${imageItem.uri}")
+        // Update current image - hide mainImage when scratch overlay is active
+        // The scratch overlay will handle displaying the image as underlay
+        if (state.hasImages && !state.isLoading) {
+            binding.mainImage.visibility = View.GONE  // Hide to prevent duplication
+            android.util.Log.d("MainActivity", "Hidden mainImage to prevent duplication with scratch overlay")
+        } else {
+            binding.mainImage.visibility = View.VISIBLE
+            state.currentImage?.let { imageItem ->
+                Glide.with(this)
+                    .load(imageItem.uri)
+                    .into(binding.mainImage)
+                android.util.Log.d("MainActivity", "Updated main image: ${imageItem.uri}")
+            }
         }
 
         // Update image counter
