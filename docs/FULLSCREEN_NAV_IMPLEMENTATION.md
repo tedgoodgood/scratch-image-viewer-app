@@ -137,7 +137,7 @@ The FrameLayout container is positioned above the ScratchOverlayView in the layo
 4. `updateUI()` receives updated state
 5. Sets `fullscreenControlsContainer.visibility = View.VISIBLE`
 6. Sets `controlsContainer.visibility = View.GONE`
-7. Sets `topControls.visibility = View.GONE`
+7. Sets `toolbar.visibility = View.GONE`
 
 #### Exiting Fullscreen
 1. User taps exit button on overlay bar
@@ -146,7 +146,7 @@ The FrameLayout container is positioned above the ScratchOverlayView in the layo
 4. `updateUI()` receives updated state
 5. Sets `fullscreenControlsContainer.visibility = View.GONE`
 6. Sets `controlsContainer.visibility = View.VISIBLE`
-7. Sets `topControls.visibility = View.VISIBLE`
+7. Sets `toolbar.visibility = View.VISIBLE`
 
 ### Navigation State Updates
 ```kotlin
