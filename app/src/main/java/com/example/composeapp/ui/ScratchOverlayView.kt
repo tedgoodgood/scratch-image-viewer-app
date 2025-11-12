@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.net.Uri
 import android.util.AttributeSet
 import android.util.Log
@@ -129,18 +130,24 @@ class ScratchOverlayView @JvmOverloads constructor(
         
         Log.d("ScratchOverlayView", "onDraw: canvas=${canvas.width}x${canvas.height}, underlay=${underlayImageBitmap?.width}x${underlayImageBitmap?.height}, overlay=${overlayBitmap?.width}x${overlayBitmap?.height}")
         
-        // Step 1: Draw underlay image (the image revealed when scratching)
+        // Step 1: Draw underlay image (the image revealed when scratching) - SCALED to fill canvas
         underlayImageBitmap?.let { bitmap ->
-            canvas.drawBitmap(bitmap, 0f, 0f, null)
+            val srcRect = Rect(0, 0, bitmap.width, bitmap.height)
+            val dstRect = Rect(0, 0, canvas.width, canvas.height)
+            canvas.drawBitmap(bitmap, srcRect, dstRect, null)
+            Log.d("ScratchOverlayView", "Drew underlay: src=$srcRect dst=$dstRect")
         } ?: run {
             // Fallback to gray background to avoid black screen
             canvas.drawColor(0xFF808080.toInt())
             Log.w("ScratchOverlayView", "No underlay image available, using gray fallback")
         }
         
-        // Step 2: Draw overlay (color that gets scratched off)
+        // Step 2: Draw overlay (color that gets scratched off) - SCALED to fill canvas
         overlayBitmap?.let { bitmap ->
-            canvas.drawBitmap(bitmap, 0f, 0f, null)
+            val srcRect = Rect(0, 0, bitmap.width, bitmap.height)
+            val dstRect = Rect(0, 0, canvas.width, canvas.height)
+            canvas.drawBitmap(bitmap, srcRect, dstRect, null)
+            Log.d("ScratchOverlayView", "Drew overlay: src=$srcRect dst=$dstRect")
         } ?: run {
             Log.w("ScratchOverlayView", "No overlay bitmap available")
         }
