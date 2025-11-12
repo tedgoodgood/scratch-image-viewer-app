@@ -78,6 +78,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Set up toolbar for menu access
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+
         setupUI()
         observeViewModel()
         
@@ -270,11 +274,11 @@ class MainActivity : AppCompatActivity() {
         // Update controls visibility based on fullscreen mode
         if (state.isFullscreen) {
             binding.controlsContainer.visibility = View.GONE
-            binding.topControls.visibility = View.GONE
+            binding.toolbar.visibility = View.GONE
             binding.fullscreenControlsContainer.visibility = View.VISIBLE
         } else {
             binding.controlsContainer.visibility = View.VISIBLE
-            binding.topControls.visibility = View.VISIBLE
+            binding.toolbar.visibility = View.VISIBLE
             binding.fullscreenControlsContainer.visibility = View.GONE
         }
 
