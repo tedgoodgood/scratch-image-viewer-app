@@ -2,69 +2,17 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="0dp">
+    android:padding="0dp"
+    android:background="@android:color/black">
 
-    <!-- SCRATCH VIEW - FILLS ENTIRE SCREEN -->
+    <!-- LAYER 1 (BOTTOM): Image fills entire screen -->
     <com.example.composeapp.ui.ScratchOverlayView
         android:id="@+id/scratchOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="0dp" />
 
-    <!-- FULLSCREEN TOP CONTROLS -->
-    <FrameLayout
-        android:id="@+id/fullscreenControlsContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:id="@+id/fullscreenControlsOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/controls_background"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="8dp">
-
-            <ImageButton
-                android:id="@+id/fullscreenPreviousButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Previous image"
-                android:scaleType="centerInside"
-                android:src="@android:drawable/ic_media_previous" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <ImageButton
-                android:id="@+id/fullscreenNextButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Next image"
-                android:scaleType="centerInside"
-                android:src="@android:drawable/ic_media_next" />
-
-            <ImageButton
-                android:id="@+id/fullscreenExitButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Exit fullscreen mode"
-                android:scaleType="centerInside"
-                android:src="@android:drawable/ic_menu_close_clear_cancel" />
-
-            </LinearLayout>
-
-    </FrameLayout>
-
-    <!-- TOP RIGHT SETTINGS BUTTON -->
+    <!-- LAYER 2: TOP RIGHT SETTINGS BUTTON -->
     <Button
         android:id="@+id/settingsMenuButton"
         android:layout_width="wrap_content"
@@ -75,15 +23,62 @@
         android:textSize="12sp"
         android:padding="8dp" />
 
-    <!-- BOTTOM CONTROLS -->
+    <!-- LAYER 3 (TOP): FULLSCREEN TOP CONTROLS -->
+    <LinearLayout
+        android:id="@+id/fullscreenControlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@drawable/controls_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/fullscreenPreviousButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Previous image"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_media_previous" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/fullscreenNextButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Next image"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_media_next" />
+
+        <ImageButton
+            android:id="@+id/fullscreenExitButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Exit fullscreen mode"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+
+    </LinearLayout>
+
+    <!-- LAYER 4: BOTTOM CONTROLS OVERLAY -->
     <LinearLayout
         android:id="@+id/controlsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:orientation="vertical"
-        android:background="@drawable/controls_background"
-        android:padding="16dp">
+        android:background="#99000000"
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -98,7 +93,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Images"
+                android:text="Images"
                 android:textSize="12sp" />
 
             <Button
@@ -107,7 +102,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Select Folder"
+                android:text="Folder"
                 android:textSize="12sp" />
 
             <Button
