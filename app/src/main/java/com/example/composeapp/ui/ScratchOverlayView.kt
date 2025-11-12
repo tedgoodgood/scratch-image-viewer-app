@@ -127,6 +127,8 @@ class ScratchOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
+        Log.d("ScratchOverlayView", "onDraw: canvas=${canvas.width}x${canvas.height}, underlay=${underlayImageBitmap?.width}x${underlayImageBitmap?.height}, overlay=${overlayBitmap?.width}x${overlayBitmap?.height}")
+        
         // Step 1: Draw underlay image (the image revealed when scratching)
         underlayImageBitmap?.let { bitmap ->
             canvas.drawBitmap(bitmap, 0f, 0f, null)

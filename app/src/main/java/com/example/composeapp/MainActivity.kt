@@ -6,11 +6,10 @@ import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -69,6 +68,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Set fullscreen flags
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_FULLSCREEN)
+        
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
@@ -77,10 +81,6 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Set up toolbar for menu access
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
 
         setupUI()
         observeViewModel()
@@ -99,6 +99,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        // Settings button with popup menu
+        binding.settingsMenuButton.setOnClickListener { view ->
+            showSettingsPopup(view)
+        }
+
         // Image selection
         binding.selectImagesButton.setOnClickListener {
             val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
@@ -168,30 +173,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        android.util.Log.d("MainActivity", "onCreateOptionsMenu called")
-        menuInflater.inflate(R.menu.main_menu, menu)
-        android.util.Log.d("MainActivity", "Menu inflated with ${menu?.size()} items")
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        android.util.Log.d("MainActivity", "Menu item selected: ${item.itemId} - ${item.title}")
-        return when (item.itemId) {
-            R.id.menu_opacity -> {
-                showOpacityDialog()
-                true
+    private fun showSettingsPopup(view: View) {
+        val popup = PopupMenu(this, view)
+        popup.menuInflater.inflate(R.menu.settings_popup, popup.menu)
+        
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.popup_opacity -> {
+                    showOpacityDialog()
+                    true
+                }
+                R.id.popup_brush_size -> {
+                    showBrushSizeDialog()
+                    true
+                }
+                R.id.popup_color -> {
+                    showColorPickerDialog()
+                    true
+                }
+                else -> false
             }
-            R.id.menu_brush_size -> {
-                showBrushSizeDialog()
-                true
-            }
-            R.id.menu_color -> {
-                showColorPickerDialog()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
+        
+        popup.show()
     }
 
     private fun observeViewModel() {
@@ -212,24 +216,6 @@ class MainActivity : AppCompatActivity() {
             binding.errorText.text = state.error
         } else {
             binding.errorContainer.visibility = View.GONE
-        }
-
-        // Gallery visibility
-        binding.galleryContainer.visibility = if (state.hasImages && !state.isLoading) View.VISIBLE else View.GONE
-
-        // Update current image - hide mainImage when scratch overlay is active
-        // The scratch overlay will handle displaying the image as underlay
-        if (state.hasImages && !state.isLoading) {
-            binding.mainImage.visibility = View.GONE  // Hide to prevent duplication
-            android.util.Log.d("MainActivity", "Hidden mainImage to prevent duplication with scratch overlay")
-        } else {
-            binding.mainImage.visibility = View.VISIBLE
-            state.currentImage?.let { imageItem ->
-                Glide.with(this)
-                    .load(imageItem.uri)
-                    .into(binding.mainImage)
-                android.util.Log.d("MainActivity", "Updated main image: ${imageItem.uri}")
-            }
         }
 
         // Update image counter
@@ -274,11 +260,11 @@ class MainActivity : AppCompatActivity() {
         // Update controls visibility based on fullscreen mode
         if (state.isFullscreen) {
             binding.controlsContainer.visibility = View.GONE
-            binding.toolbar.visibility = View.GONE
+            binding.settingsMenuButton.visibility = View.GONE
             binding.fullscreenControlsContainer.visibility = View.VISIBLE
         } else {
             binding.controlsContainer.visibility = View.VISIBLE
-            binding.toolbar.visibility = View.VISIBLE
+            binding.settingsMenuButton.visibility = View.VISIBLE
             binding.fullscreenControlsContainer.visibility = View.GONE
         }
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/popup_opacity"
+        android:title="Opacity" />
+    
+    <item
+        android:id="@+id/popup_brush_size"
+        android:title="Brush Size" />
+    
+    <item
+        android:id="@+id/popup_color"
+        android:title="Color" />
+    
+</menu>
