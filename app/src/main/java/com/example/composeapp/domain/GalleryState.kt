@@ -10,6 +10,7 @@ data class GalleryState(
     val brushSize: Float = 40f,
     @ColorInt val scratchColor: Int = DEFAULT_SCRATCH_COLOR,
     val overlayOpacity: Int = 250, // 0-255, default 98%
+    val overlayOpacityPercent: Int = 98, // 0-100, stored for accurate UI display without precision loss
     val scratchSegments: List<ScratchSegment> = emptyList(),
     val hasScratched: Boolean = false,
     val isLoading: Boolean = false,
