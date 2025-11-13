@@ -243,6 +243,8 @@ class MainActivity : AppCompatActivity() {
         if (targetUnderlayUri != currentImageUri) {
             android.util.Log.d("MainActivity", "Updating underlay image to: $targetUnderlayUri")
             updateUnderlayImage(targetUnderlayUri)
+            // Reset overlay when image changes to clear old scratches
+            binding.scratchOverlay.resetOverlay()
         }
         
         // Update scratch color if it changed
