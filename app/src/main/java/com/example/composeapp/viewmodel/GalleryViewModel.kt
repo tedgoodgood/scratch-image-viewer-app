@@ -47,8 +47,8 @@ class GalleryViewModel(
 
     private val _state = MutableStateFlow(
         GalleryState(
-            images = listOf(defaultImage),
-            currentIndex = 0
+            images = emptyList(),
+            currentIndex = -1
         )
     )
     val state: StateFlow<GalleryState> = _state.asStateFlow()
@@ -102,10 +102,10 @@ class GalleryViewModel(
             android.util.Log.d("GalleryViewModel", "After deduplication: ${persistedImages.size} unique images")
             android.util.Log.d("GalleryViewModel", "Unique URIs: ${persistedImages.map { it.uri.toString() }}")
 
-            val merged = listOf(defaultImage) + persistedImages
-            val previousPersistedCount = current.images.count { it.uri != defaultImage.uri }
+            // Don't add defaultImage when user imports their own images
+            val merged = persistedImages
             val newIndex = when {
-                previousPersistedCount == 0 -> 1
+                persistedImages.isEmpty() -> 0
                 current.currentIndex >= merged.size -> merged.lastIndex
                 else -> current.currentIndex
             }
@@ -118,7 +118,7 @@ class GalleryViewModel(
             updateState {
                 it.copy(
                     images = merged,
-                    currentIndex = newIndex.coerceIn(0, merged.lastIndex),
+                    currentIndex = if (merged.isEmpty()) -1 else newIndex.coerceIn(0, merged.lastIndex),
                     isLoading = false,
                     scratchSegments = emptyList(),
                     hasScratched = false,
@@ -191,10 +191,10 @@ class GalleryViewModel(
             android.util.Log.d("GalleryViewModel", "After folder merge deduplication: ${persistedImages.size} unique images")
             android.util.Log.d("GalleryViewModel", "Unique URIs after merge: ${persistedImages.map { it.uri.toString() }}")
 
-            val merged = listOf(defaultImage) + persistedImages
-            val previousPersistedCount = current.images.count { it.uri != defaultImage.uri }
+            // Don't add defaultImage when user imports their own images
+            val merged = persistedImages
             val newIndex = when {
-                previousPersistedCount == 0 -> 1
+                persistedImages.isEmpty() -> 0
                 current.currentIndex >= merged.size -> merged.lastIndex
                 else -> current.currentIndex
             }
@@ -207,7 +207,7 @@ class GalleryViewModel(
             updateState {
                 it.copy(
                     images = merged,
-                    currentIndex = newIndex.coerceIn(0, merged.lastIndex),
+                    currentIndex = if (merged.isEmpty()) -1 else newIndex.coerceIn(0, merged.lastIndex),
                     isLoading = false,
                     scratchSegments = emptyList(),
                     hasScratched = false,
@@ -378,9 +378,11 @@ class GalleryViewModel(
         val storedBrushSize = savedStateHandle.get<Float>(KEY_BRUSH_SIZE) ?: DEFAULT_BRUSH_SIZE
 
         if (storedUris.isEmpty()) {
-            // Even with no stored images, load saved opacity and color settings
+            // Show default image when no stored images, but load saved settings
             updateState(persist = false) {
                 it.copy(
+                    images = listOf(defaultImage),
+                    currentIndex = 0,
                     overlayOpacity = storedOverlayOpacity,
                     scratchColor = android.graphics.Color.argb(
                         storedOverlayOpacity,
@@ -403,19 +405,20 @@ class GalleryViewModel(
                     .sortedWith(compareBy(naturalSortComparator) { it.displayName })
             }
 
-            val merged = listOf(defaultImage) + persisted
+            // Only add defaultImage if there are no persisted images
+            val merged = if (persisted.isEmpty()) listOf(defaultImage) else persisted
             prefetchImages(merged)
 
             val normalizedIndex = when {
-                persisted.isEmpty() -> 0
-                storedIndex in persisted.indices -> storedIndex + 1
-                else -> 1
+                persisted.isEmpty() -> 0  // Show default image at index 0
+                storedIndex in persisted.indices -> storedIndex  // Use stored index directly
+                else -> 0  // Fallback to first image
             }
 
             updateState(persist = false) {
                 it.copy(
                     images = merged,
-                    currentIndex = normalizedIndex.coerceIn(0, merged.lastIndex),
+                    currentIndex = if (merged.isEmpty()) -1 else normalizedIndex.coerceIn(0, merged.lastIndex),
                     scratchColor = storedScratchColor ?: android.graphics.Color.argb(
                         storedOverlayOpacity,
                         android.graphics.Color.red(storedOverlayColor),
@@ -561,10 +564,17 @@ class GalleryViewModel(
             state: GalleryState,
             savedStateHandle: SavedStateHandle
         ) {
+            // Only persist user images (content scheme), not the default image
             val persistableImages = state.images.filter { it.uri.scheme == ContentResolver.SCHEME_CONTENT }
             savedStateHandle[KEY_PERSISTED_URIS] = persistableImages.map { it.uri.toString() }
+            
+            // Calculate index relative to persisted images only
             val currentUri = state.currentImage?.uri
-            val persistedIndex = persistableImages.indexOfFirst { it.uri == currentUri }
+            val persistedIndex = if (currentUri?.scheme == ContentResolver.SCHEME_CONTENT) {
+                persistableImages.indexOfFirst { it.uri == currentUri }
+            } else {
+                -1  // Default image or invalid state
+            }
             savedStateHandle[KEY_CURRENT_INDEX] = persistedIndex
             savedStateHandle[KEY_SCRATCH_COLOR] = state.scratchColor
             savedStateHandle[KEY_OVERLAY_OPACITY] = state.overlayOpacity
