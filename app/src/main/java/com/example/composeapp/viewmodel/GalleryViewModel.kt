@@ -277,12 +277,13 @@ class GalleryViewModel(
     }
 
     fun setOverlayOpacity(opacityPercent: Int) {
+        // Save percentage directly (0-100) to avoid precision loss
+        sharedPreferences.edit()
+            .putInt(PREF_OPACITY, opacityPercent)
+            .apply()
+        
         // Convert 0-100% to 0-255 for Color.argb()
         val opacity255 = (opacityPercent * 255) / 100
-        
-        sharedPreferences.edit()
-            .putInt(PREF_OPACITY, opacity255)
-            .apply()
         
         updateState(persist = true) {
             // Keep existing RGB values, just change opacity
@@ -295,6 +296,7 @@ class GalleryViewModel(
             )
             it.copy(
                 overlayOpacity = opacity255,
+                overlayOpacityPercent = opacityPercent,
                 scratchColor = newColor,
                 scratchSegments = emptyList(),
                 hasScratched = false
@@ -391,7 +393,11 @@ class GalleryViewModel(
 
     private fun restorePersistedState() {
         // Load settings from SharedPreferences (persistent across app restarts)
-        val savedOpacity = sharedPreferences.getInt(PREF_OPACITY, DEFAULT_OPACITY)
+        // Opacity is stored as percentage (0-100) to avoid precision loss
+        val savedOpacityPercent = sharedPreferences.getInt(PREF_OPACITY, DEFAULT_OPACITY_PERCENT)
+        // Convert percentage to 0-255 for internal storage
+        val savedOpacity255 = (savedOpacityPercent * 255) / 100
+        
         val savedBrushSize = sharedPreferences.getFloat(PREF_BRUSH_SIZE, DEFAULT_BRUSH_SIZE)
         val savedColor = sharedPreferences.getInt(PREF_COLOR, DEFAULT_COLOR)
         
@@ -406,9 +412,10 @@ class GalleryViewModel(
                 it.copy(
                     images = listOf(defaultImage),
                     currentIndex = 0,
-                    overlayOpacity = savedOpacity,
+                    overlayOpacity = savedOpacity255,
+                    overlayOpacityPercent = savedOpacityPercent,
                     scratchColor = android.graphics.Color.argb(
-                        savedOpacity,
+                        savedOpacity255,
                         android.graphics.Color.red(savedColor),
                         android.graphics.Color.green(savedColor),
                         android.graphics.Color.blue(savedColor)
@@ -443,12 +450,13 @@ class GalleryViewModel(
                     images = merged,
                     currentIndex = if (merged.isEmpty()) -1 else normalizedIndex.coerceIn(0, merged.lastIndex),
                     scratchColor = storedScratchColor ?: android.graphics.Color.argb(
-                        savedOpacity,
+                        savedOpacity255,
                         android.graphics.Color.red(savedColor),
                         android.graphics.Color.green(savedColor),
                         android.graphics.Color.blue(savedColor)
                     ),
-                    overlayOpacity = savedOpacity,
+                    overlayOpacity = savedOpacity255,
+                    overlayOpacityPercent = savedOpacityPercent,
                     brushSize = savedBrushSize,
                     isLoading = false,
                     error = null
@@ -589,7 +597,7 @@ class GalleryViewModel(
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
         private const val DEFAULT_BRUSH_SIZE = 40f
-        private const val DEFAULT_OPACITY = 250  // 98%
+        private const val DEFAULT_OPACITY_PERCENT = 98  // 98% (stored as 0-100 percentage)
         private const val DEFAULT_COLOR = android.graphics.Color.RED
 
         internal fun persistGalleryState(

@@ -284,9 +284,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showOpacityDialog() {
-        val currentOpacity = viewModel.state.value?.overlayOpacity?.let { 
-            (it * 100) / 255 
-        } ?: 98
+        val currentOpacity = viewModel.state.value?.overlayOpacityPercent ?: 98
         
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Set Opacity (%)")
