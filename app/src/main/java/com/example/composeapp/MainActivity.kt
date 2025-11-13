@@ -156,10 +156,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.resetButton.setOnClickListener {
-            // Clear scratch segments in ViewModel
-            viewModel.resetOverlay()
-            // Also trigger immediate overlay reset in the view
+            // Reset overlay in the view (this clears both segments and overlay bitmap)
             binding.scratchOverlay.resetOverlay()
+            // Also clear scratch segments in ViewModel state
+            viewModel.resetOverlay()
         }
 
         // Error handling
@@ -170,6 +170,13 @@ class MainActivity : AppCompatActivity() {
         // Initialize with default color overlay to ensure overlay bitmap exists
         binding.scratchOverlay.post {
             binding.scratchOverlay.setScratchColor(0xFAD4AF37.toInt()) // Semi-transparent gold
+            
+            // Set up callback to update ViewModel when scratches are made
+            binding.scratchOverlay.onScratchesUpdated = { segments ->
+                // Update ViewModel state for persistence
+                viewModel.updateScratchSegments(segments)
+                Log.d("MainActivity", "Updated ViewModel with ${segments.size} scratch segments")
+            }
         }
     }
 
@@ -256,7 +263,9 @@ class MainActivity : AppCompatActivity() {
         
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
-        
+         
+        // Synchronize scratch segments from ViewModel to View when needed
+        // This is important when navigating between images
         binding.scratchOverlay.setScratchSegments(state.scratchSegments)
 
         // Update controls visibility based on fullscreen mode
