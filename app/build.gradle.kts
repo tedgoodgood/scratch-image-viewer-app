@@ -9,6 +9,7 @@ plugins {
 android {
     namespace = "com.example.composeapp"
     compileSdk = 34
+    buildToolsVersion = "29.0.3"
 
     defaultConfig {
         applicationId = "com.example.composeapp"

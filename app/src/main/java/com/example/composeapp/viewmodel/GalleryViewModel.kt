@@ -306,11 +306,11 @@ class GalleryViewModel(
         }
     }
 
-    fun addScratchSegment(start: PointF, end: PointF?, radiusPx: Float) {
+    fun updateScratchSegments(segments: List<ScratchSegment>) {
         updateState(persist = false) {
             it.copy(
-                scratchSegments = it.scratchSegments + ScratchSegment(start, end, radiusPx),
-                hasScratched = true
+                scratchSegments = segments,
+                hasScratched = segments.isNotEmpty()
             )
         }
     }

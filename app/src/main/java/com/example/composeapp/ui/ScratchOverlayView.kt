@@ -51,6 +51,12 @@ class ScratchOverlayView @JvmOverloads constructor(
     private var isScratching = false
     private var lastTouchX: Float = 0f
     private var lastTouchY: Float = 0f
+    
+    // Callback to notify when scratches are updated (for persistence)
+    var onScratchesUpdated: ((List<ScratchSegment>) -> Unit)? = null
+    
+    // Flag to prevent infinite loops during synchronization
+    private var isSynchronizing = false
 
     companion object {
         private const val DEFAULT_SCRATCH_COLOR = 0xFAD4AF37.toInt() // Semi-transparent gold (98% opacity)
@@ -81,9 +87,15 @@ class ScratchOverlayView @JvmOverloads constructor(
     }
 
     fun setScratchSegments(segments: List<ScratchSegment>) {
+        Log.d("ScratchOverlayView", "setScratchSegments called with ${segments.size} segments")
+        isSynchronizing = true
         scratchSegments = segments
+        
+        // Always redraw scratches to ensure overlay bitmap is properly updated
+        // This is critical when segments list is cleared (empty) to remove scratches from overlay
         redrawScratches()
         invalidate()
+        isSynchronizing = false
     }
 
     fun resetOverlay() {
@@ -115,20 +127,28 @@ class ScratchOverlayView @JvmOverloads constructor(
 
     private fun redrawScratches() {
         overlayCanvas?.let { canvas ->
-            canvas.drawColor(scratchColor) // Clear and redraw base color
+            // Always clear and redraw base color first
+            canvas.drawColor(scratchColor)
             
-            scratchSegments.forEach { segment ->
-                scratchPath.reset()
-                scratchPath.moveTo(segment.start.x, segment.start.y)
-                segment.end?.let { end ->
-                    scratchPath.lineTo(end.x, end.y)
+            if (scratchSegments.isNotEmpty()) {
+                // Only draw scratches if there are segments
+                scratchSegments.forEach { segment ->
+                    scratchPath.reset()
+                    scratchPath.moveTo(segment.start.x, segment.start.y)
+                    segment.end?.let { end ->
+                        scratchPath.lineTo(end.x, end.y)
+                    }
+                    
+                    scratchPaint.strokeWidth = segment.radiusPx * 2
+                    canvas.drawPath(scratchPath, scratchPaint)
                 }
-                
-                scratchPaint.strokeWidth = segment.radiusPx * 2
-                canvas.drawPath(scratchPath, scratchPaint)
+                Log.d("ScratchOverlayView", "Redrew ${scratchSegments.size} scratch segments")
+            } else {
+                // No segments - just ensure clean overlay with base color
+                Log.d("ScratchOverlayView", "No scratch segments to redraw, overlay is clean")
             }
-            
-            Log.d("ScratchOverlayView", "Redrew ${scratchSegments.size} scratch segments")
+        } ?: run {
+            Log.w("ScratchOverlayView", "No overlay canvas available for redraw")
         }
     }
 
@@ -184,18 +204,19 @@ class ScratchOverlayView @JvmOverloads constructor(
                 lastTouchX = touchX
                 lastTouchY = touchY
                 
-                // Start new scratch segment
+                // Start new scratch segment - only store locally for drawing
                 val newSegment = ScratchSegment(
                     start = PointF(touchX, touchY),
                     end = null,
                     radiusPx = scratchPaint.strokeWidth / 2
                 )
                 scratchSegments = scratchSegments + newSegment
+                Log.d("ScratchOverlayView", "Started new scratch segment. Total segments: ${scratchSegments.size}")
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (isScratching) {
-                    // Draw scratch on overlay bitmap
+                    // Draw scratch on overlay bitmap immediately for visual feedback
                     overlayCanvas?.let { canvas ->
                         scratchPath.reset()
                         scratchPath.moveTo(lastTouchX, lastTouchY)
@@ -203,7 +224,7 @@ class ScratchOverlayView @JvmOverloads constructor(
                         canvas.drawPath(scratchPath, scratchPaint)
                     }
                     
-                    // Update the last segment
+                    // Update the last segment with end point
                     if (scratchSegments.isNotEmpty()) {
                         val lastSegment = scratchSegments.last()
                         scratchSegments = scratchSegments.dropLast(1) + lastSegment.copy(
@@ -218,6 +239,14 @@ class ScratchOverlayView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (isScratching && scratchSegments.isNotEmpty()) {
+                    Log.d("ScratchOverlayView", "Finished scratch. Total segments: ${scratchSegments.size}")
+                    // Notify callback that scratches have been made (for persistence if needed)
+                    // Only update if we're not in the middle of synchronizing from ViewModel
+                    if (!isSynchronizing) {
+                        onScratchesUpdated?.invoke(scratchSegments)
+                    }
+                }
                 isScratching = false
             }
         }
