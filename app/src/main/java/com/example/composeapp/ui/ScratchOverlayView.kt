@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PointF
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
@@ -15,9 +14,6 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import com.bumptech.glide.Glide
-import com.bumptech.glide.request.target.SimpleTarget
-import com.bumptech.glide.request.transition.Transition
-import com.example.composeapp.domain.ScratchSegment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,7 +43,6 @@ class ScratchOverlayView @JvmOverloads constructor(
     private var overlayCanvas: Canvas? = null
     private var scratchColor: Int = DEFAULT_SCRATCH_COLOR
     private var underlayImageBitmap: Bitmap? = null
-    private var scratchSegments: List<ScratchSegment> = emptyList()
     private var isScratching = false
     private var lastTouchX: Float = 0f
     private var lastTouchY: Float = 0f
@@ -60,15 +55,12 @@ class ScratchOverlayView @JvmOverloads constructor(
         Log.d("ScratchOverlayView", "setScratchColor called with color: $color")
         scratchColor = color
         
-        // Create new overlay with the scratch color
+        // Create new overlay with the scratch color (this clears any existing scratches)
         if (width > 0 && height > 0) {
             overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
             overlayCanvas?.drawColor(scratchColor)
             Log.d("ScratchOverlayView", "Created color overlay: ${width}x${height}")
-            
-            // Redraw any existing scratches
-            redrawScratches()
         } else {
             Log.w("ScratchOverlayView", "Cannot create overlay: width=$width, height=$height")
         }
@@ -80,15 +72,8 @@ class ScratchOverlayView @JvmOverloads constructor(
         scratchPaint.strokeWidth = size * 2
     }
 
-    fun setScratchSegments(segments: List<ScratchSegment>) {
-        scratchSegments = segments
-        redrawScratches()
-        invalidate()
-    }
-
     fun resetOverlay() {
         Log.d("ScratchOverlayView", "resetOverlay called")
-        scratchSegments = emptyList()
         scratchPath.reset()
 
         if (overlayBitmap == null || overlayCanvas == null) {
@@ -113,25 +98,6 @@ class ScratchOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun redrawScratches() {
-        overlayCanvas?.let { canvas ->
-            canvas.drawColor(scratchColor) // Clear and redraw base color
-            
-            scratchSegments.forEach { segment ->
-                scratchPath.reset()
-                scratchPath.moveTo(segment.start.x, segment.start.y)
-                segment.end?.let { end ->
-                    scratchPath.lineTo(end.x, end.y)
-                }
-                
-                scratchPaint.strokeWidth = segment.radiusPx * 2
-                canvas.drawPath(scratchPath, scratchPaint)
-            }
-            
-            Log.d("ScratchOverlayView", "Redrew ${scratchSegments.size} scratch segments")
-        }
-    }
-
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         
@@ -141,8 +107,6 @@ class ScratchOverlayView @JvmOverloads constructor(
             overlayCanvas = Canvas(overlayBitmap!!)
             overlayCanvas?.drawColor(scratchColor)
             Log.d("ScratchOverlayView", "Created overlay bitmap: ${w}x${h}")
-            
-            redrawScratches()
         }
     }
 
@@ -183,32 +147,16 @@ class ScratchOverlayView @JvmOverloads constructor(
                 isScratching = true
                 lastTouchX = touchX
                 lastTouchY = touchY
-                
-                // Start new scratch segment
-                val newSegment = ScratchSegment(
-                    start = PointF(touchX, touchY),
-                    end = null,
-                    radiusPx = scratchPaint.strokeWidth / 2
-                )
-                scratchSegments = scratchSegments + newSegment
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (isScratching) {
-                    // Draw scratch on overlay bitmap
+                    // Draw scratch directly on overlay bitmap
                     overlayCanvas?.let { canvas ->
                         scratchPath.reset()
                         scratchPath.moveTo(lastTouchX, lastTouchY)
                         scratchPath.lineTo(touchX, touchY)
                         canvas.drawPath(scratchPath, scratchPaint)
-                    }
-                    
-                    // Update the last segment
-                    if (scratchSegments.isNotEmpty()) {
-                        val lastSegment = scratchSegments.last()
-                        scratchSegments = scratchSegments.dropLast(1) + lastSegment.copy(
-                            end = PointF(touchX, touchY)
-                        )
                     }
                     
                     lastTouchX = touchX

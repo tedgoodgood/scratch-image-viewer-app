@@ -257,7 +257,10 @@ class MainActivity : AppCompatActivity() {
         // Update current image URI tracking
         currentImageUri = state.currentImage?.uri
         
-        binding.scratchOverlay.setScratchSegments(state.scratchSegments)
+        // NOTE: Do NOT sync scratch segments from ViewModel back to View
+        // The View is the source of truth for rendering scratches as smooth curves.
+        // Syncing back would cause curves to be redrawn as straight line segments,
+        // losing the original smooth path data. The View maintains its own scratch state.
 
         // Update controls visibility based on fullscreen mode
         if (state.isFullscreen) {
