@@ -2,7 +2,9 @@ package com.example.composeapp.viewmodel
 
 import android.app.Application
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.database.Cursor
 import android.graphics.PointF
 import android.net.Uri
@@ -23,7 +25,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.composeapp.domain.GalleryState
 import com.example.composeapp.domain.ImageItem
-import com.example.composeapp.domain.OverlayType
 import com.example.composeapp.domain.ScratchSegment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,11 @@ class GalleryViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
+
+    private val sharedPreferences: SharedPreferences = application.getSharedPreferences(
+        PREF_NAME,
+        Context.MODE_PRIVATE
+    )
 
     private val defaultImage = ImageItem(
         uri = Uri.parse(DEFAULT_IMAGE_URL),
@@ -251,8 +257,12 @@ class GalleryViewModel(
     }
 
     fun setBrushSize(size: Float) {
+        val coercedSize = size.coerceIn(MIN_BRUSH_RADIUS, MAX_BRUSH_RADIUS)
+        sharedPreferences.edit()
+            .putFloat(PREF_BRUSH_SIZE, coercedSize)
+            .apply()
         updateState(persist = true) {
-            it.copy(brushSize = size.coerceIn(MIN_BRUSH_RADIUS, MAX_BRUSH_RADIUS))
+            it.copy(brushSize = coercedSize)
         }
     }
 
@@ -269,6 +279,10 @@ class GalleryViewModel(
     fun setOverlayOpacity(opacityPercent: Int) {
         // Convert 0-100% to 0-255 for Color.argb()
         val opacity255 = (opacityPercent * 255) / 100
+        
+        sharedPreferences.edit()
+            .putInt(PREF_OPACITY, opacity255)
+            .apply()
         
         updateState(persist = true) {
             // Keep existing RGB values, just change opacity
@@ -289,6 +303,12 @@ class GalleryViewModel(
     }
 
     fun setOverlayColor(color: Int) {
+        // Save color without alpha to SharedPreferences
+        val colorWithoutAlpha = color and 0x00FFFFFF
+        sharedPreferences.edit()
+            .putInt(PREF_COLOR, colorWithoutAlpha)
+            .apply()
+        
         updateState(persist = true) {
             // Keep existing opacity, just change RGB values
             val currentOpacity = it.overlayOpacity
@@ -370,12 +390,15 @@ class GalleryViewModel(
     }
 
     private fun restorePersistedState() {
+        // Load settings from SharedPreferences (persistent across app restarts)
+        val savedOpacity = sharedPreferences.getInt(PREF_OPACITY, DEFAULT_OPACITY)
+        val savedBrushSize = sharedPreferences.getFloat(PREF_BRUSH_SIZE, DEFAULT_BRUSH_SIZE)
+        val savedColor = sharedPreferences.getInt(PREF_COLOR, DEFAULT_COLOR)
+        
+        // Load image state from SavedStateHandle (process death recovery)
         val storedUris = savedStateHandle.get<List<String>>(KEY_PERSISTED_URIS).orEmpty()
         val storedIndex = savedStateHandle.get<Int>(KEY_CURRENT_INDEX) ?: -1
         val storedScratchColor = savedStateHandle.get<Int>(KEY_SCRATCH_COLOR)
-        val storedOverlayOpacity = savedStateHandle.get<Int>(KEY_OVERLAY_OPACITY) ?: DEFAULT_OPACITY
-        val storedOverlayColor = savedStateHandle.get<Int>(KEY_OVERLAY_COLOR) ?: DEFAULT_COLOR
-        val storedBrushSize = savedStateHandle.get<Float>(KEY_BRUSH_SIZE) ?: DEFAULT_BRUSH_SIZE
 
         if (storedUris.isEmpty()) {
             // Show default image when no stored images, but load saved settings
@@ -383,14 +406,14 @@ class GalleryViewModel(
                 it.copy(
                     images = listOf(defaultImage),
                     currentIndex = 0,
-                    overlayOpacity = storedOverlayOpacity,
+                    overlayOpacity = savedOpacity,
                     scratchColor = android.graphics.Color.argb(
-                        storedOverlayOpacity,
-                        android.graphics.Color.red(storedOverlayColor),
-                        android.graphics.Color.green(storedOverlayColor),
-                        android.graphics.Color.blue(storedOverlayColor)
+                        savedOpacity,
+                        android.graphics.Color.red(savedColor),
+                        android.graphics.Color.green(savedColor),
+                        android.graphics.Color.blue(savedColor)
                     ),
-                    brushSize = storedBrushSize
+                    brushSize = savedBrushSize
                 )
             }
             return
@@ -420,13 +443,13 @@ class GalleryViewModel(
                     images = merged,
                     currentIndex = if (merged.isEmpty()) -1 else normalizedIndex.coerceIn(0, merged.lastIndex),
                     scratchColor = storedScratchColor ?: android.graphics.Color.argb(
-                        storedOverlayOpacity,
-                        android.graphics.Color.red(storedOverlayColor),
-                        android.graphics.Color.green(storedOverlayColor),
-                        android.graphics.Color.blue(storedOverlayColor)
+                        savedOpacity,
+                        android.graphics.Color.red(savedColor),
+                        android.graphics.Color.green(savedColor),
+                        android.graphics.Color.blue(savedColor)
                     ),
-                    overlayOpacity = storedOverlayOpacity,
-                    brushSize = storedBrushSize,
+                    overlayOpacity = savedOpacity,
+                    brushSize = savedBrushSize,
                     isLoading = false,
                     error = null
                 )
@@ -544,6 +567,13 @@ class GalleryViewModel(
     }
 
     companion object {
+        // SharedPreferences constants (persistent across app restarts)
+        private const val PREF_NAME = "scratch_viewer_settings"
+        private const val PREF_OPACITY = "overlay_opacity"
+        private const val PREF_BRUSH_SIZE = "brush_size"
+        private const val PREF_COLOR = "overlay_color"
+        
+        // SavedStateHandle constants (process death recovery)
         private const val KEY_PERSISTED_URIS = "gallery:persisted_uris"
         private const val KEY_CURRENT_INDEX = "gallery:current_index"
         private const val KEY_PERSISTED_FOLDERS = "gallery:persisted_folders"
@@ -553,6 +583,8 @@ class GalleryViewModel(
         private const val KEY_OVERLAY_OPACITY = "gallery:overlay_opacity"
         private const val KEY_OVERLAY_COLOR = "gallery:overlay_color"
         private const val KEY_BRUSH_SIZE = "gallery:brush_size"
+        
+        // Default values
         private const val DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
         private const val MIN_BRUSH_RADIUS = 10f
         private const val MAX_BRUSH_RADIUS = 100f
