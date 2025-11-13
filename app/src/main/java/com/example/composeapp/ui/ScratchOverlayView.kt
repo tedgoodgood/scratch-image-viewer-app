@@ -59,7 +59,8 @@ class ScratchOverlayView @JvmOverloads constructor(
         if (width > 0 && height > 0) {
             overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
-            overlayCanvas?.drawColor(scratchColor)
+            // Use PorterDuff.Mode.SRC to completely replace pixels (not blend)
+            overlayCanvas?.drawColor(scratchColor, PorterDuff.Mode.SRC)
             Log.d("ScratchOverlayView", "Created color overlay: ${width}x${height}")
         } else {
             Log.w("ScratchOverlayView", "Cannot create overlay: width=$width, height=$height")
@@ -94,7 +95,10 @@ class ScratchOverlayView @JvmOverloads constructor(
             }
         }
 
-        overlayCanvas?.drawColor(scratchColor)
+        // Use PorterDuff.Mode.SRC to completely replace pixels (not blend)
+        // This ensures scratched (transparent) areas are fully covered
+        overlayCanvas?.drawColor(scratchColor, PorterDuff.Mode.SRC)
+        Log.d("ScratchOverlayView", "Reset overlay with color: $scratchColor")
         invalidate()
     }
 
@@ -105,7 +109,8 @@ class ScratchOverlayView @JvmOverloads constructor(
         if (overlayBitmap == null || overlayBitmap?.width != w || overlayBitmap?.height != h) {
             overlayBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             overlayCanvas = Canvas(overlayBitmap!!)
-            overlayCanvas?.drawColor(scratchColor)
+            // Use PorterDuff.Mode.SRC to completely replace pixels (not blend)
+            overlayCanvas?.drawColor(scratchColor, PorterDuff.Mode.SRC)
             Log.d("ScratchOverlayView", "Created overlay bitmap: ${w}x${h}")
         }
     }
@@ -147,6 +152,7 @@ class ScratchOverlayView @JvmOverloads constructor(
                 isScratching = true
                 lastTouchX = touchX
                 lastTouchY = touchY
+                Log.d("ScratchOverlayView", "Touch DOWN at ($touchX, $touchY)")
             }
 
             MotionEvent.ACTION_MOVE -> {
@@ -157,7 +163,8 @@ class ScratchOverlayView @JvmOverloads constructor(
                         scratchPath.moveTo(lastTouchX, lastTouchY)
                         scratchPath.lineTo(touchX, touchY)
                         canvas.drawPath(scratchPath, scratchPaint)
-                    }
+                        Log.d("ScratchOverlayView", "Drawing scratch from ($lastTouchX, $lastTouchY) to ($touchX, $touchY)")
+                    } ?: Log.w("ScratchOverlayView", "overlayCanvas is null, cannot draw scratch")
                     
                     lastTouchX = touchX
                     lastTouchY = touchY
@@ -167,6 +174,7 @@ class ScratchOverlayView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 isScratching = false
+                Log.d("ScratchOverlayView", "Touch UP/CANCEL")
             }
         }
 
