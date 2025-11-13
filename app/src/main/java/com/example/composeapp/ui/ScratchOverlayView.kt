@@ -89,7 +89,28 @@ class ScratchOverlayView @JvmOverloads constructor(
     fun resetOverlay() {
         Log.d("ScratchOverlayView", "resetOverlay called")
         scratchSegments = emptyList()
-        setScratchColor(scratchColor) // Recreate overlay with current color
+        scratchPath.reset()
+
+        if (overlayBitmap == null || overlayCanvas == null) {
+            if (width > 0 && height > 0) {
+                overlayBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                overlayCanvas = Canvas(overlayBitmap!!)
+                Log.d(
+                    "ScratchOverlayView",
+                    "Created overlay bitmap during reset: ${width}x${height}"
+                )
+            } else {
+                Log.w(
+                    "ScratchOverlayView",
+                    "Cannot reset overlay: view has no size yet (width=$width, height=$height)"
+                )
+                invalidate()
+                return
+            }
+        }
+
+        overlayCanvas?.drawColor(scratchColor)
+        invalidate()
     }
 
     private fun redrawScratches() {
